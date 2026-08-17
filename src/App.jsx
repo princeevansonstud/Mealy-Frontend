@@ -39,12 +39,48 @@ function FoodCard({ title, price, description, onBuy, onAddToCart }) {
     );
 }
 
-// Footer Component matched to Figma design
+// Category & Search Bar Component matched to Figma design
+function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQuery }) {
+    const categories = ['ALL', 'VEGAN', 'BEEF', 'PORK', 'CHICKEN', 'CHEESE', 'GREENS'];
+
+    return (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+            {/* Category Filter Buttons */}
+            <div className="bg-white px-3 py-2 flex flex-wrap gap-4 items-center border border-gray-200 shadow-sm">
+                {categories.map((cat) => (
+                    <button
+                        key={cat}
+                        onClick={() => onSelectCategory(cat)}
+                        className={`text-xs font-black tracking-wider uppercase transition-colors ${activeCategory === cat ? 'text-[#FF7A38]' : 'text-black hover:text-gray-600'
+                            }`}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+
+            {/* Search Bar */}
+            <div className="flex items-center">
+                <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-white border border-r-0 border-gray-300 px-3 py-1.5 text-xs focus:outline-none w-48"
+                />
+                <button className="bg-black text-white text-xs font-black uppercase px-4 py-1.5 hover:bg-gray-800 transition-colors">
+                    Search
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// Footer Component
 function Footer() {
     return (
         <footer className="bg-[#FF7A38] text-white px-12 py-6 mt-auto">
             <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold tracking-wide">
-                {/* Left: Social Contacts */}
                 <div className="text-left space-y-0.5">
                     <p className="font-black text-xs mb-1">Connect With Us:</p>
                     <p>Instagram: @MealyMunchies</p>
@@ -52,12 +88,10 @@ function Footer() {
                     <p>TikTok: @MealyMunchies</p>
                 </div>
 
-                {/* Center: Brand Logo */}
                 <div className="font-black text-2xl tracking-widest my-2 md:my-0">
                     MEALY
                 </div>
 
-                {/* Right: Inquiries */}
                 <div className="text-right space-y-0.5">
                     <p className="font-black text-xs mb-1">For Any Inquiries:</p>
                     <p>Contact On Whatsapp:</p>
@@ -72,13 +106,16 @@ export default function App() {
     const dispatch = useDispatch();
     const currentTab = useSelector((state) => state.activeTab.currentTab);
 
-    // Cart and Checkout State
+    // State for Cart, Active Category Filter, and Search Input
     const [cart, setCart] = useState([]);
     const [checkoutItem, setCheckoutItem] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const testItem = {
         id: 1,
         title: 'Beef with Rice',
+        category: 'BEEF',
         price: 450,
         formattedPrice: 'KSH 450',
         description: 'FOOD DESCRIPTION: Tender seasoned beef served over steamed rice with fresh sides.',
@@ -116,14 +153,25 @@ export default function App() {
         switch (currentTab) {
             case 'munchies':
                 return (
-                    <div className="flex justify-center items-center py-6">
-                        <FoodCard
-                            title={testItem.title}
-                            price={testItem.formattedPrice}
-                            description={testItem.description}
-                            onBuy={() => handleBuyNow(testItem)}
-                            onAddToCart={() => handleAddToCart(testItem)}
+                    <div>
+                        {/* SubHeader with Categories and Search Bar */}
+                        <SubHeader
+                            activeCategory={selectedCategory}
+                            onSelectCategory={setSelectedCategory}
+                            searchQuery={searchQuery}
+                            setSearchQuery={setSearchQuery}
                         />
+
+                        {/* Munchies Grid Area */}
+                        <div className="flex justify-center items-center py-4">
+                            <FoodCard
+                                title={testItem.title}
+                                price={testItem.formattedPrice}
+                                description={testItem.description}
+                                onBuy={() => handleBuyNow(testItem)}
+                                onAddToCart={() => handleAddToCart(testItem)}
+                            />
+                        </div>
                     </div>
                 );
 
@@ -220,7 +268,6 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-[#E5E5E5] flex flex-col justify-between">
-            {/* Top Section */}
             <div>
                 <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5">
                     <div
@@ -249,7 +296,6 @@ export default function App() {
                 </main>
             </div>
 
-            {/* Footer */}
             <Footer />
         </div>
     );
