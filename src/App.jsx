@@ -117,10 +117,12 @@ export default function App() {
         dispatch(restoreSession(user));
 
         if (user.role === 'customer') {
-        dispatch(setActiveTab('customer-dashboard'));
+            dispatch(setActiveTab('customer-dashboard'));
         } else if (user.role === 'caterer') {
-        dispatch(setActiveTab('caterer-dashboard'));
+            dispatch(setActiveTab('caterer-dashboard'));
         }
+    } else {
+        dispatch(setActiveTab('login'));
     }
     }, [dispatch]);
     const currentTab = useSelector((state) => state.activeTab.currentTab);
