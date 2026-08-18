@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
-
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 // Food Card Component
 function FoodCard({ title, price, description, onBuy, onAddToCart }) {
     return (
@@ -256,11 +257,10 @@ export default function App() {
                 );
 
             case 'signup':
-                return <div className="p-8 bg-white shadow-sm rounded text-center">Signup Form View</div>;
+                return <SignupPage />;
 
             case 'login':
-                return <div className="p-8 bg-white shadow-sm rounded text-center">Login Form View</div>;
-
+                return <LoginPage />;
             default:
                 return null;
         }
