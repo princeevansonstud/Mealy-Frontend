@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
+import CustomerMenuPage from './pages/CustomerMenuPage';
 
 // Food Card Component
 function FoodCard({ title, price, description, onBuy, onAddToCart }) {
@@ -162,16 +163,8 @@ export default function App() {
                             setSearchQuery={setSearchQuery}
                         />
 
-                        {/* Munchies Grid Area */}
-                        <div className="flex justify-center items-center py-4">
-                            <FoodCard
-                                title={testItem.title}
-                                price={testItem.formattedPrice}
-                                description={testItem.description}
-                                onBuy={() => handleBuyNow(testItem)}
-                                onAddToCart={() => handleAddToCart(testItem)}
-                            />
-                        </div>
+                        {/* Today's Menu from Redux (mock data for now) */}
+                        <CustomerMenuPage />
                     </div>
                 );
 
