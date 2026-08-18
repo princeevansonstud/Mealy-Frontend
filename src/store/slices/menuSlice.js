@@ -1,4 +1,3 @@
-// src/store/slices/menuSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // ---- MOCK DATA (remove once backend is ready) ----
@@ -32,6 +31,7 @@ const menuSlice = createSlice({
     todayMenu: null,
     selectedMealId: null,
     selectedCategory: 'ALL',
+    searchQuery: '',
     status: 'idle',
     error: null,
   },
@@ -44,6 +44,9 @@ const menuSlice = createSlice({
     },
     setCategory: (state, action) => {
       state.selectedCategory = action.payload;
+    },
+    setSearchQuery: (state, action) => {
+      state.searchQuery = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -63,5 +66,5 @@ const menuSlice = createSlice({
   },
 });
 
-export const { selectMeal, clearSelection, setCategory } = menuSlice.actions;
+export const { selectMeal, clearSelection, setCategory, setSearchQuery } = menuSlice.actions;
 export default menuSlice.reducer;

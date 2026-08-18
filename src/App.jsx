@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
-import { setCategory } from './store/slices/menuSlice';
+import { setCategory, setSearchQuery } from './store/slices/menuSlice';
 import CustomerMenuPage from './pages/CustomerMenuPage';
 
 // Food Card Component
@@ -108,11 +108,11 @@ export default function App() {
     const dispatch = useDispatch();
     const currentTab = useSelector((state) => state.activeTab.currentTab);
     const selectedCategory = useSelector((state) => state.menu.selectedCategory);
+    const searchQuery = useSelector((state) => state.menu.searchQuery);
 
-    // State for Cart and Search Input
+    // State for Cart
     const [cart, setCart] = useState([]);
     const [checkoutItem, setCheckoutItem] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
 
     const testItem = {
         id: 1,
@@ -161,11 +161,11 @@ export default function App() {
                             activeCategory={selectedCategory}
                             onSelectCategory={(cat) => dispatch(setCategory(cat))}
                             searchQuery={searchQuery}
-                            setSearchQuery={setSearchQuery}
+                            setSearchQuery={(query) => dispatch(setSearchQuery(query))}
                         />
 
                         {/* Today's Menu from Redux (mock data for now) */}
-                        <CustomerMenuPage />
+                        <CustomerMenuPage onAddToCart={handleAddToCart} />
                     </div>
                 );
 

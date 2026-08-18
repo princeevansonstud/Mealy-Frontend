@@ -1,12 +1,11 @@
-// src/pages /CustomerMenuPage.jsx
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTodayMenu, selectMeal, clearSelection } from '../store/slices/menuSlice';
 import FoodCard from '../components/FoodCard';
 
-export default function CustomerMenuPage() {
+export default function CustomerMenuPage({ onAddToCart }) {
   const dispatch = useDispatch();
-  const { todayMenu, status, error, selectedMealId, selectedCategory } = useSelector((state) => state.menu);
+  const { todayMenu, status, error, selectedMealId, selectedCategory, searchQuery } = useSelector((state) => state.menu);
 
   useEffect(() => {
     dispatch(fetchTodayMenu());
@@ -56,16 +55,17 @@ export default function CustomerMenuPage() {
     );
   }
 
-  // Filter meals by selected category ("ALL" shows everything)
-  const filteredMeals = todayMenu?.mealOptions.filter(
-    (meal) => selectedCategory === 'ALL' || meal.category === selectedCategory
-  );
+  const filteredMeals = todayMenu?.mealOptions.filter((meal) => {
+    const matchesCategory = selectedCategory === 'ALL' || meal.category === selectedCategory;
+    const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div>
       <h1 className="font-black text-lg mb-4 uppercase">Today's Menu</h1>
       {filteredMeals?.length === 0 ? (
-        <p className="text-center py-8 text-gray-500">No meals in this category today.</p>
+        <p className="text-center py-8 text-gray-500">No meals match your search or filter.</p>
       ) : (
         <div className="flex flex-wrap gap-6 justify-center">
           {filteredMeals?.map((meal) => (
@@ -76,7 +76,14 @@ export default function CustomerMenuPage() {
               price={`KSH ${meal.price}`}
               description={meal.description}
               onBuy={() => dispatch(selectMeal(meal.id))}
-              onAddToCart={() => dispatch(selectMeal(meal.id))}
+              onAddToCart={() =>
+                onAddToCart({
+                  id: meal.id,
+                  title: meal.name,
+                  price: meal.price,
+                  formattedPrice: `KSH ${meal.price}`,
+                })
+              }
             />
           ))}
         </div>
