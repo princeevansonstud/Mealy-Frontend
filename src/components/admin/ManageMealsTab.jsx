@@ -44,64 +44,63 @@ export default function ManageMealsTab() {
 
             {/* Add / Edit Meal Form */}
             <form onSubmit={handleSubmit} className="bg-gray-50 p-5 rounded-md border border-gray-200 my-6">
-                <h2 className="text-base font-semibold text-gray-700 mb-4">
-                    {isEditing ? 'Edit Meal Option' : 'Add New Meal Option'}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Meal Name *</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Beef with Rice"
-                            value={form.name}
-                            onChange={(e) => setForm({ ...form, name: e.target.value })}
-                            className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-peach-orange bg-white"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Price ($) *</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 12.50"
-                            value={form.price}
-                            onChange={(e) => setForm({ ...form, price: e.target.value })}
-                            className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-peach-orange bg-white"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Served with steamed veggies"
-                            value={form.description}
-                            onChange={(e) => setForm({ ...form, description: e.target.value })}
-                            className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-peach-orange bg-white"
-                        />
-                    </div>
-                </div>
+    <h2 className="text-base font-semibold text-gray-700 mb-4">
+        {isEditing ? 'Edit Meal Option' : 'Add New Meal Option'}
+    </h2>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Meal Name *</label>
+            <input
+                type="text"
+                placeholder="e.g. Beef with Rice"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-orange-500 bg-white"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Price (KSh) *</label>
+            <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 450"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-orange-500 bg-white"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+            <input
+                type="text"
+                placeholder="e.g. Served with steamed veggies"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-orange-500 bg-white"
+            />
+        </div>
+    </div>
 
-                <div className="flex gap-3">
-                    <button
-                        type="submit"
-                        className="bg-peach-orange text-white px-5 py-2 text-sm rounded font-medium hover:opacity-90 transition-opacity"
-                    >
-                        {isEditing ? 'Update Meal' : 'Add Meal'}
-                    </button>
-                    {isEditing && (
-                        <button
-                            type="button"
-                            onClick={handleCancelEdit}
-                            className="bg-gray-300 text-gray-700 px-5 py-2 text-sm rounded font-medium hover:bg-gray-400 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                </div>
-            </form>
-
+    <div className="flex gap-3 pt-2">
+        <button
+            type="submit"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 text-sm rounded font-medium transition-colors shadow-sm cursor-pointer"
+        >
+            {isEditing ? 'Update Meal' : 'Add Meal'}
+        </button>
+        {isEditing && (
+            <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="bg-gray-300 text-gray-700 px-5 py-2 text-sm rounded font-medium hover:bg-gray-400 transition-colors cursor-pointer"
+            >
+                Cancel
+            </button>
+        )}
+    </div>
+</form>
             {/* Meals Table View */}
             <div className="overflow-x-auto mt-6">
                 <table className="w-full border-collapse text-left text-sm">
@@ -126,7 +125,7 @@ export default function ManageMealsTab() {
                                     <td className="py-3 px-2 font-medium text-gray-800">{meal.name}</td>
                                     <td className="py-3 px-2 text-gray-500">{meal.description || '—'}</td>
                                     <td className="py-3 px-2 font-semibold text-gray-700">
-                                        ${typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price}
+                                        KSh {typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price}
                                     </td>
                                     <td className="py-3 px-2 text-right space-x-3">
                                         <button

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
+import AdminDashboard from "./pages/AdminDashboardPage";
 
 // Food Card Component
 function FoodCard({ title, price, description, onBuy, onAddToCart }) {
@@ -45,21 +46,20 @@ function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQue
 
     return (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-            {/* Category Filter Buttons */}
             <div className="bg-white px-3 py-2 flex flex-wrap gap-4 items-center border border-gray-200 shadow-sm">
                 {categories.map((cat) => (
                     <button
                         key={cat}
                         onClick={() => onSelectCategory(cat)}
-                        className={`text-xs font-black tracking-wider uppercase transition-colors ${activeCategory === cat ? 'text-[#FF7A38]' : 'text-black hover:text-gray-600'
-                            }`}
+                        className={`text-xs font-black tracking-wider uppercase transition-colors ${
+                            activeCategory === cat ? 'text-[#FF7A38]' : 'text-black hover:text-gray-600'
+                        }`}
                     >
                         {cat}
                     </button>
                 ))}
             </div>
 
-            {/* Search Bar */}
             <div className="flex items-center">
                 <input
                     type="text"
@@ -88,9 +88,7 @@ function Footer() {
                     <p>TikTok: @MealyMunchies</p>
                 </div>
 
-                <div className="font-black text-2xl tracking-widest my-2 md:my-0">
-                    MEALY
-                </div>
+                <div className="font-black text-2xl tracking-widest my-2 md:my-0">MEALY</div>
 
                 <div className="text-right space-y-0.5">
                     <p className="font-black text-xs mb-1">For Any Inquiries:</p>
@@ -106,7 +104,9 @@ export default function App() {
     const dispatch = useDispatch();
     const currentTab = useSelector((state) => state.activeTab.currentTab);
 
-    // State for Cart, Active Category Filter, and Search Input
+    // Active role state for testing ('admin' or 'customer')
+    const [userRole, setUserRole] = useState('admin');
+
     const [cart, setCart] = useState([]);
     const [checkoutItem, setCheckoutItem] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -139,6 +139,15 @@ export default function App() {
         dispatch(setActiveTab('checkout'));
     };
 
+    const handleRoleSwitch = (role) => {
+        setUserRole(role);
+        if (role === 'admin') {
+            dispatch(setActiveTab('manage-meals'));
+        } else {
+            dispatch(setActiveTab('munchies'));
+        }
+    };
+
     const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -149,20 +158,17 @@ export default function App() {
         { label: 'LOGIN', tabKey: 'login' },
     ];
 
-    const renderTabContent = () => {
+    const renderCustomerContent = () => {
         switch (currentTab) {
             case 'munchies':
                 return (
                     <div>
-                        {/* SubHeader with Categories and Search Bar */}
                         <SubHeader
                             activeCategory={selectedCategory}
                             onSelectCategory={setSelectedCategory}
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
                         />
-
-                        {/* Munchies Grid Area */}
                         <div className="flex justify-center items-center py-4">
                             <FoodCard
                                 title={testItem.title}
@@ -269,30 +275,60 @@ export default function App() {
     return (
         <div className="min-h-screen bg-[#E5E5E5] flex flex-col justify-between">
             <div>
+                {/* Mode Switcher Banner */}
+                <div className="bg-black text-white px-12 py-2 text-xs flex justify-between items-center border-b border-gray-800">
+                    <span>
+                        Viewing Mode: <strong className="text-[#FF7A38] uppercase">{userRole}</strong>
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleRoleSwitch('admin')}
+                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${
+                                userRole === 'admin' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
+                            }`}
+                        >
+                            Caterer Mode
+                        </button>
+                        <button
+                            onClick={() => handleRoleSwitch('customer')}
+                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${
+                                userRole === 'customer' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
+                            }`}
+                        >
+                            Customer Mode
+                        </button>
+                    </div>
+                </div>
+
+                {/* Header */}
                 <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5">
                     <div
                         className="font-black text-xl text-white tracking-widest cursor-pointer"
-                        onClick={() => dispatch(setActiveTab('munchies'))}
+                        onClick={() => dispatch(setActiveTab(userRole === 'admin' ? 'manage-meals' : 'munchies'))}
                     >
                         MEALY
                     </div>
 
-                    <nav className="flex gap-6">
-                        {navItems.map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => dispatch(setActiveTab(item.tabKey))}
-                                className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === item.tabKey ? 'underline underline-offset-4 text-black' : ''
+                    {userRole === 'customer' && (
+                        <nav className="flex gap-6">
+                            {navItems.map((item) => (
+                                <button
+                                    key={item.label}
+                                    onClick={() => dispatch(setActiveTab(item.tabKey))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${
+                                        currentTab === item.tabKey ? 'underline underline-offset-4 text-black' : ''
                                     }`}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </nav>
+                    )}
                 </header>
 
+                {/* Body Content */}
                 <main className="max-w-6xl mx-auto px-12 py-8">
-                    {renderTabContent()}
+                    {userRole === 'admin' ? <AdminDashboard /> : renderCustomerContent()}
                 </main>
             </div>
 

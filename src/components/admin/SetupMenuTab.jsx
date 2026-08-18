@@ -53,7 +53,7 @@ export default function SetupMenuTab() {
 
                                 <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                                     <span className="text-sm font-bold text-peach-orange">
-                                        ${typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price}
+                                        KSh {typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price}
                                     </span>
                                     <span
                                         className={`text-xs px-2 py-0.5 rounded font-medium ${

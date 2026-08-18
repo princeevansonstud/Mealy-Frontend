@@ -1,32 +1,54 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setActiveTab } from '../store/activeTabSlice'; // Adjust path if needed
+import { setActiveTab } from '../store/slices/activeTabSlice';
 
-const Navbar = () => {
+const Navbar = ({ userRole = 'customer' }) => {
     const dispatch = useDispatch();
-    const activeTab = useSelector((state) => state.activeTab.value);
+    const currentTab = useSelector((state) => state.activeTab.currentTab);
 
-    const navItems = ['MUNCHIES', 'FOODCART', 'SIGNUP', 'LOGIN'];
+    // Dynamic tabs based on user role
+    const customerNavItems = [
+        { label: 'MUNCHIES', key: 'munchies' },
+        { label: 'FOODCART', key: 'foodcart' },
+        { label: 'SIGNUP', key: 'signup' },
+        { label: 'LOGIN', key: 'login' },
+    ];
+
+    const adminNavItems = [
+        { label: 'MEAL OPTIONS', key: 'manage-meals' },
+        { label: 'SET MENU', key: 'setup-menu' },
+        { label: 'CUSTOMER ORDERS', key: 'manage-orders' },
+        { label: 'REVENUE', key: 'revenue' },
+    ];
+
+    const navItems = userRole === 'admin' ? adminNavItems : customerNavItems;
 
     return (
-        <header className="bg-[#FF7A00] text-white px-8 py-4 flex justify-between items-center shadow-md">
+        <header className="bg-[#FF7A38] text-white px-8 py-4 flex justify-between items-center shadow-md">
             {/* Logo */}
-            <h1 className="text-2xl font-black tracking-wider cursor-pointer">
+            <h1
+                onClick={() => dispatch(setActiveTab(userRole === 'admin' ? 'manage-meals' : 'munchies'))}
+                className="text-2xl font-black tracking-wider cursor-pointer"
+            >
                 MEALY
             </h1>
 
             {/* Navigation Buttons */}
-            <nav className="flex gap-6 font-bold text-sm tracking-wide">
-                {navItems.map((item) => (
-                    <button
-                        key={item}
-                        onClick={() => dispatch(setActiveTab(item))}
-                        className={`hover:text-black transition-colors ${activeTab === item ? 'border-b-2 border-white text-black' : ''
+            <nav className="flex gap-6 font-bold text-xs tracking-wide">
+                {navItems.map((item) => {
+                    const isActive = currentTab === item.key;
+                    return (
+                        <button
+                            key={item.key}
+                            onClick={() => dispatch(setActiveTab(item.key))}
+                            className={`hover:text-black transition-colors ${
+                                isActive ? 'underline underline-offset-4 text-black' : ''
                             }`}
-                    >
-                        {item}
-                    </button>
-                ))}
+                        >
+                            {item.label}
+                        </button>
+                    );
+                })}
             </nav>
         </header>
     );
