@@ -6,7 +6,7 @@ import FoodCard from '../components/FoodCard';
 
 export default function CustomerMenuPage() {
   const dispatch = useDispatch();
-  const { todayMenu, status, error, selectedMealId } = useSelector((state) => state.menu);
+  const { todayMenu, status, error, selectedMealId, selectedCategory } = useSelector((state) => state.menu);
 
   useEffect(() => {
     dispatch(fetchTodayMenu());
@@ -26,7 +26,6 @@ export default function CustomerMenuPage() {
 
   const selectedMeal = todayMenu?.mealOptions.find((m) => m.id === selectedMealId);
 
-  // If a meal is already selected, show the confirmation view instead of the full grid
   if (selectedMeal) {
     return (
       <div className="flex flex-col items-center py-6">
@@ -44,7 +43,6 @@ export default function CustomerMenuPage() {
             </p>
           </div>
         </div>
-
         <p className="mt-4 text-sm font-bold text-center">
           ✅ Order confirmed: {selectedMeal.name}
         </p>
@@ -58,23 +56,31 @@ export default function CustomerMenuPage() {
     );
   }
 
-  // No selection yet — show the full menu grid
+  // Filter meals by selected category ("ALL" shows everything)
+  const filteredMeals = todayMenu?.mealOptions.filter(
+    (meal) => selectedCategory === 'ALL' || meal.category === selectedCategory
+  );
+
   return (
     <div>
       <h1 className="font-black text-lg mb-4 uppercase">Today's Menu</h1>
-      <div className="flex flex-wrap gap-6 justify-center">
-        {todayMenu?.mealOptions.map((meal) => (
-          <FoodCard
-            key={meal.id}
-            image={null}
-            title={meal.name}
-            price={`KSH ${meal.price}`}
-            description={meal.description}
-            onBuy={() => dispatch(selectMeal(meal.id))}
-            onAddToCart={() => dispatch(selectMeal(meal.id))}
-          />
-        ))}
-      </div>
+      {filteredMeals?.length === 0 ? (
+        <p className="text-center py-8 text-gray-500">No meals in this category today.</p>
+      ) : (
+        <div className="flex flex-wrap gap-6 justify-center">
+          {filteredMeals?.map((meal) => (
+            <FoodCard
+              key={meal.id}
+              image={null}
+              title={meal.name}
+              price={`KSH ${meal.price}`}
+              description={meal.description}
+              onBuy={() => dispatch(selectMeal(meal.id))}
+              onAddToCart={() => dispatch(selectMeal(meal.id))}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

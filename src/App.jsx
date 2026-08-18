@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
+import { setCategory } from './store/slices/menuSlice';
 import CustomerMenuPage from './pages/CustomerMenuPage';
 
 // Food Card Component
@@ -106,11 +107,11 @@ function Footer() {
 export default function App() {
     const dispatch = useDispatch();
     const currentTab = useSelector((state) => state.activeTab.currentTab);
+    const selectedCategory = useSelector((state) => state.menu.selectedCategory);
 
-    // State for Cart, Active Category Filter, and Search Input
+    // State for Cart and Search Input
     const [cart, setCart] = useState([]);
     const [checkoutItem, setCheckoutItem] = useState(null);
-    const [selectedCategory, setSelectedCategory] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
 
     const testItem = {
@@ -158,7 +159,7 @@ export default function App() {
                         {/* SubHeader with Categories and Search Bar */}
                         <SubHeader
                             activeCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
+                            onSelectCategory={(cat) => dispatch(setCategory(cat))}
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
                         />

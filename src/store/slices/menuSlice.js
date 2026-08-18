@@ -1,31 +1,24 @@
+// src/store/slices/menuSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // ---- MOCK DATA (remove once backend is ready) ----
-// This is the shape we EXPECT the Flask endpoint GET /menu/today to return.
 const MOCK_TODAY_MENU = {
   id: 1,
-  date: new Date().toISOString().split('T')[0], // e.g. "2026-08-18"
+  date: new Date().toISOString().split('T')[0],
   mealOptions: [
-    { id: 101, name: 'Beef with Rice', description: 'Slow-cooked beef, steamed rice, veg', price: 250 },
-    { id: 102, name: 'Beef with Fries', description: 'Grilled beef, crispy fries, salad', price: 280 },
-    { id: 103, name: 'Chicken Stew with Ugali', description: 'Home-style chicken stew, ugali', price: 220 },
+    { id: 101, name: 'Beef with Rice', description: 'Slow-cooked beef, steamed rice, veg', price: 250, category: 'BEEF' },
+    { id: 102, name: 'Beef with Fries', description: 'Grilled beef, crispy fries, salad', price: 280, category: 'BEEF' },
+    { id: 103, name: 'Chicken Stew with Ugali', description: 'Home-style chicken stew, ugali', price: 220, category: 'CHICKEN' },
+    { id: 104, name: 'Vegan Buddha Bowl', description: 'Quinoa, roasted veg, tahini dressing', price: 200, category: 'VEGAN' },
+    { id: 105, name: 'Cheesy Greens Wrap', description: 'Grilled greens, melted cheese, tortilla', price: 180, category: 'CHEESE' },
   ],
 };
 
-// Fetch today's menu.
-// Right now this just resolves with mock data after a short fake delay,
-// so your UI can handle loading states properly.
-// LATER: replace the body with `const res = await api.get('/menu/today'); return res.data;`
 export const fetchTodayMenu = createAsyncThunk(
   'menu/fetchTodayMenu',
   async (_, { rejectWithValue }) => {
     try {
-      // simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // simulate "no menu set yet" by uncommenting this:
-      // return null;
-
       return MOCK_TODAY_MENU;
     } catch (err) {
       return rejectWithValue('Failed to load today\'s menu');
@@ -36,9 +29,10 @@ export const fetchTodayMenu = createAsyncThunk(
 const menuSlice = createSlice({
   name: 'menu',
   initialState: {
-    todayMenu: null,       // null until fetched; will hold { id, date, mealOptions }
-    selectedMealId: null,  // customer's current pick
-    status: 'idle',        // 'idle' | 'loading' | 'succeeded' | 'failed'
+    todayMenu: null,
+    selectedMealId: null,
+    selectedCategory: 'ALL',
+    status: 'idle',
     error: null,
   },
   reducers: {
@@ -47,6 +41,9 @@ const menuSlice = createSlice({
     },
     clearSelection: (state) => {
       state.selectedMealId = null;
+    },
+    setCategory: (state, action) => {
+      state.selectedCategory = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -57,7 +54,7 @@ const menuSlice = createSlice({
       })
       .addCase(fetchTodayMenu.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.todayMenu = action.payload; // may be null if no menu set
+        state.todayMenu = action.payload;
       })
       .addCase(fetchTodayMenu.rejected, (state, action) => {
         state.status = 'failed';
@@ -66,5 +63,5 @@ const menuSlice = createSlice({
   },
 });
 
-export const { selectMeal, clearSelection } = menuSlice.actions;
+export const { selectMeal, clearSelection, setCategory } = menuSlice.actions;
 export default menuSlice.reducer;
