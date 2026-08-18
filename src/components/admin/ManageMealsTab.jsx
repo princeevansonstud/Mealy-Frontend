@@ -6,11 +6,11 @@ export default function ManageMealsTab() {
     const dispatch = useDispatch();
     const { mealOptions } = useSelector((state) => state.mealManagement);
 
-    // Form state for creating and editing meals
+
     const [form, setForm] = useState({ id: null, name: '', price: '', description: '' });
     const [isEditing, setIsEditing] = useState(false);
 
-    // Handle form submit (Add or Update)
+    
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!form.name || !form.price) return;
