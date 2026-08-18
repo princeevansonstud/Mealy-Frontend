@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
+import { restoreSession } from './store/slices/authSlice';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import CustomerMenuPage from './pages/CustomerMenuPage';
@@ -107,6 +108,21 @@ function Footer() {
 
 export default function App() {
     const dispatch = useDispatch();
+        useEffect(() => {
+    const storedUser = localStorage.getItem('mealyCurrentUser');
+
+    if (storedUser) {
+        const user = JSON.parse(storedUser);
+
+        dispatch(restoreSession(user));
+
+        if (user.role === 'customer') {
+        dispatch(setActiveTab('customer-dashboard'));
+        } else if (user.role === 'caterer') {
+        dispatch(setActiveTab('caterer-dashboard'));
+        }
+    }
+    }, [dispatch]);
     const currentTab = useSelector((state) => state.activeTab.currentTab);
 
     // State for Cart, Active Category Filter, and Search Input
