@@ -3,6 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import CustomerMenuPage from './pages/CustomerMenuPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 // Food Card Component
 function FoodCard({ title, price, description, onBuy, onAddToCart }) {
     return (
@@ -261,6 +263,11 @@ export default function App() {
 
             case 'login':
                 return <LoginPage />;
+            case 'customer-dashboard':
+                return <CustomerMenuPage />;
+
+            case 'caterer-dashboard':
+                return <AdminDashboardPage />;
             default:
                 return null;
         }

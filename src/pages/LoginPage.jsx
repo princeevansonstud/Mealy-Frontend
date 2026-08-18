@@ -51,6 +51,11 @@ function LoginPage() {
     );
 
     dispatch(loginSuccess(loggedInUser));
+    if (loggedInUser.role === 'customer') {
+      dispatch(setActiveTab('customer-dashboard'));
+    } else if (loggedInUser.role === 'caterer') {
+      dispatch(setActiveTab('caterer-dashboard'));
+    }
   };
 
   return (
