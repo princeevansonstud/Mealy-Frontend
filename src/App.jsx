@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
 import { setCategory, setSearchQuery } from './store/slices/menuSlice';
 
+import AdminDashboard from "./pages/AdminDashboardPage";
 import CustomerMenuPage from './pages/CustomerMenuPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CustomerOrderHistoryPage from './pages/CustomerOrderHistoryPage';
@@ -52,9 +53,7 @@ function Footer() {
                     <p>TikTok: @MealyMunchies</p>
                 </div>
 
-                <div className="font-black text-2xl tracking-widest my-2 md:my-0">
-                    MEALY
-                </div>
+                <div className="font-black text-2xl tracking-widest my-2 md:my-0">MEALY</div>
 
                 <div className="text-right space-y-0.5">
                     <p className="font-black text-xs mb-1">For Any Inquiries:</p>
@@ -68,16 +67,34 @@ function Footer() {
 
 export default function App() {
     const dispatch = useDispatch();
-    const currentTab = useSelector((state) => state.activeTab.currentTab);
-    const selectedCategory = useSelector((state) => state.menu.selectedCategory);
-    const searchQuery = useSelector((state) => state.menu.searchQuery);
+    const currentTab = useSelector((state) => state.activeTab?.currentTab || 'munchies');
+    const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
+    const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
+
+    // Active role state ('admin' or 'customer')
+    const [userRole, setUserRole] = useState('admin');
 
     const [cart, setCart] = useState([]);
-    const [checkoutItems, setCheckoutItems] = useState([]);
+
+    // Initialize checkoutItems from localStorage to prevent loss on refresh
+    const [checkoutItems, setCheckoutItems] = useState(() => {
+        try {
+            const saved = localStorage.getItem('mealy_checkout_items');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+
     const [orders, setOrders] = useState(() => {
         const saved = localStorage.getItem('mealy_orders');
         return saved ? JSON.parse(saved) : [];
     });
+
+    // Persist checkoutItems to localStorage
+    useEffect(() => {
+        localStorage.setItem('mealy_checkout_items', JSON.stringify(checkoutItems));
+    }, [checkoutItems]);
 
     useEffect(() => {
         localStorage.setItem('mealy_orders', JSON.stringify(orders));
@@ -105,6 +122,24 @@ export default function App() {
         };
         setOrders((prev) => [...prev, newOrder]);
         setCheckoutItems([]);
+        localStorage.removeItem('mealy_checkout_items');
+        localStorage.removeItem('mealy_checkout_end_time'); // Clears timer on order confirmation
+        setCart([]);
+    };
+
+    const handleUpdateOrderStatus = (orderId, updatedFields) => {
+        setOrders((prevOrders) =>
+            prevOrders.map((o) => (o.id === orderId ? { ...o, ...updatedFields } : o))
+        );
+    };
+
+    const handleRoleSwitch = (role) => {
+        setUserRole(role);
+        if (role === 'admin') {
+            dispatch(setActiveTab('manage-meals'));
+        } else {
+            dispatch(setActiveTab('munchies'));
+        }
     };
 
     const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -118,7 +153,7 @@ export default function App() {
         { label: 'LOGIN', tabKey: 'login' },
     ];
 
-    const renderTabContent = () => {
+    const renderCustomerContent = () => {
         switch (currentTab) {
             case 'munchies':
                 return (
@@ -129,10 +164,9 @@ export default function App() {
                             searchQuery={searchQuery}
                             setSearchQuery={(query) => dispatch(setSearchQuery(query))}
                         />
-
                         <CustomerMenuPage
                             onAddToCart={handleAddToCart}
-                            setCheckoutItem={(item) => setCheckoutItems((prev) => [...prev, item])}
+                            setCheckoutItem={setCheckoutItems}
                         />
                     </div>
                 );
@@ -183,13 +217,18 @@ export default function App() {
                 );
 
             case 'myorders':
-                return <CustomerOrderHistoryPage orders={orders} />;
+                return (
+                    <CustomerOrderHistoryPage
+                        orders={orders}
+                        onUpdateOrderStatus={handleUpdateOrderStatus}
+                    />
+                );
 
             case 'signup':
                 return <div className="p-8 bg-white shadow-sm rounded text-center">Signup Form View</div>;
 
             case 'login':
-                return <div className="p-8 bg-white shadow-sm rounded text-center">Login Form View</div>;
+                return <div className="p-8 bg-[#ffffff] shadow-sm rounded text-center">Login Form View</div>;
 
             default:
                 return null;
@@ -199,30 +238,54 @@ export default function App() {
     return (
         <div className="min-h-screen bg-[#E5E5E5] flex flex-col justify-between">
             <div>
+                <div className="bg-black text-white px-12 py-2 text-xs flex justify-between items-center border-b border-gray-800">
+                    <span>
+                        Viewing Mode: <strong className="text-[#FF7A38] uppercase">{userRole}</strong>
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleRoleSwitch('admin')}
+                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${userRole === 'admin' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
+                                }`}
+                        >
+                            Caterer Mode
+                        </button>
+                        <button
+                            onClick={() => handleRoleSwitch('customer')}
+                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${userRole === 'customer' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
+                                }`}
+                        >
+                            Customer Mode
+                        </button>
+                    </div>
+                </div>
+
                 <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5">
                     <div
                         className="font-black text-xl text-white tracking-widest cursor-pointer"
-                        onClick={() => dispatch(setActiveTab('munchies'))}
+                        onClick={() => dispatch(setActiveTab(userRole === 'admin' ? 'manage-meals' : 'munchies'))}
                     >
                         MEALY
                     </div>
 
-                    <nav className="flex gap-6">
-                        {navItems.map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => dispatch(setActiveTab(item.tabKey))}
-                                className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === item.tabKey ? 'underline underline-offset-4 text-black' : ''
-                                    }`}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
+                    {userRole === 'customer' && (
+                        <nav className="flex gap-6">
+                            {navItems.map((item) => (
+                                <button
+                                    key={item.label}
+                                    onClick={() => dispatch(setActiveTab(item.tabKey))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === item.tabKey ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </nav>
+                    )}
                 </header>
 
                 <main className="max-w-6xl mx-auto px-12 py-8">
-                    {renderTabContent()}
+                    {userRole === 'admin' ? <AdminDashboard /> : renderCustomerContent()}
                 </main>
             </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
+import { addOrder } from '../store/slices/orderSlice';
 
 export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
   const dispatch = useDispatch();
@@ -8,16 +9,23 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    phone: ''
+    phone: '',
   });
 
-  const itemsToDisplay = checkoutItems.length > 0 ? checkoutItems : [
-    { name: 'Beef with Rice', price: 250, quantity: 1 }
-  ];
+  const rawItems = Array.isArray(checkoutItems)
+    ? checkoutItems
+    : checkoutItems
+      ? [checkoutItems]
+      : [];
 
-  // Calculate total by multiplying price by quantity
+  const itemsToDisplay = rawItems.map((item) => ({
+    name: item.name || item.title || 'Selected Meal',
+    price: Number(item.price) || 0,
+    quantity: item.quantity || 1,
+  }));
+
   const totalAmount = itemsToDisplay.reduce(
-    (sum, item) => sum + Number(item.price || 0) * (item.quantity || 1),
+    (sum, item) => sum + item.price * item.quantity,
     0
   );
 
@@ -35,19 +43,44 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (onConfirmOrder) {
+
+    if (itemsToDisplay.length === 0) {
+      alert('Your checkout is empty! Please add items to order.');
+      dispatch(setActiveTab('munchies'));
+      return;
+    }
+
+    dispatch(
+      addOrder({
+        customerName: formData.name,
+        deliveryAddress: formData.address,
+        phone: formData.phone,
+        items: itemsToDisplay,
+        totalAmount: totalAmount,
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    if (typeof onConfirmOrder === 'function') {
       onConfirmOrder(formData, itemsToDisplay);
     }
+
+    setFormData({ name: '', address: '', phone: '' });
     dispatch(setActiveTab('myorders'));
   };
 
   return (
     <div className="w-full max-w-6xl mx-auto py-6">
-      <h1 className="text-2xl font-black text-center mb-8 uppercase tracking-wide">Checkout</h1>
+      <h1 className="text-2xl font-black text-center mb-8 uppercase tracking-wide">
+        Checkout
+      </h1>
 
       <div className="flex flex-col md:flex-row justify-between items-center md:items-stretch gap-6">
+        {/* Form Card */}
         <div className="w-full md:w-5/12 bg-white border-4 border-[#FF7A38] rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-          <h2 className="text-center font-bold text-base mb-6 underline">Checkout Form :</h2>
+          <h2 className="text-center font-bold text-base mb-6 underline">
+            Checkout Form :
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center justify-between gap-2">
@@ -96,7 +129,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
               </button>
               <button
                 type="submit"
-                className="bg-green-500 text-white font-extrabold text-xs px-5 py-2.5 rounded hover:bg-green-600 transition-colors uppercase"
+                className="bg-green-500 hover:bg-green-600 font-extrabold text-xs px-5 py-2.5 rounded transition-colors uppercase text-white"
               >
                 Confirm Order
               </button>
@@ -104,6 +137,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
           </form>
         </div>
 
+        {/* Action Button */}
         <div className="flex items-center justify-center my-4 md:my-0">
           <button
             type="button"
@@ -114,6 +148,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
           </button>
         </div>
 
+        {/* Processing Order Details */}
         <div className="w-full md:w-5/12 bg-white rounded-lg p-6 shadow-sm flex flex-col min-h-[320px]">
           <h2 className="text-center font-bold text-base mb-2">Processing Your Order</h2>
           <hr className="border-black mb-6" />
@@ -124,14 +159,23 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto max-h-48 pr-1">
-            {itemsToDisplay.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-xs font-semibold border-b border-gray-100 pb-2">
-                <span>
-                  {item.name || item.title} {item.quantity > 1 ? `(x${item.quantity})` : ''}
-                </span>
-                <span>{item.price * (item.quantity || 1)}</span>
-              </div>
-            ))}
+            {itemsToDisplay.length === 0 ? (
+              <p className="text-center text-xs text-gray-400 py-6">
+                No items selected for checkout.
+              </p>
+            ) : (
+              itemsToDisplay.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between text-xs font-semibold border-b border-gray-100 pb-2"
+                >
+                  <span>
+                    {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
+                  </span>
+                  <span>{item.price * item.quantity}</span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="flex justify-between font-extrabold text-sm pt-4 border-t border-gray-200 mt-auto">

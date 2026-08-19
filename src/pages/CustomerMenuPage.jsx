@@ -1,55 +1,83 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchTodayMenu } from '../store/slices/menuSlice';
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
 import FoodCard from '../components/FoodCard';
 
 export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const dispatch = useDispatch();
-  const { todayMenu, status, error, selectedCategory, searchQuery } = useSelector((state) => state.menu);
+  const { mealOptions = [], dailyMenu = [] } = useSelector((state) => state.mealManagement || {});
+  const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
+  const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
 
-  useEffect(() => {
-    dispatch(fetchTodayMenu());
-  }, [dispatch]);
+  // Filter active meals for daily menu
+  const activeMeals = mealOptions.filter((meal) => dailyMenu.includes(meal.id));
 
-  if (status === 'loading') {
-    return <p className="text-center py-8">Loading today's menu...</p>;
-  }
+  // Filter by category and search term
+  const filteredMeals = activeMeals.filter((meal) => {
+    const activeCatUpper = selectedCategory.toUpperCase();
 
-  if (status === 'failed') {
-    return <p className="text-center py-8 text-red-600">Something went wrong: {error}</p>;
-  }
+    const matchesCategory =
+      selectedCategory === 'ALL' ||
+      (meal.category && meal.category.toUpperCase() === activeCatUpper) ||
+      meal.name?.toUpperCase().includes(activeCatUpper) ||
+      meal.description?.toUpperCase().includes(activeCatUpper);
 
-  if (status === 'succeeded' && !todayMenu) {
-    return <p className="text-center py-8">No menu has been set for today yet. Check back soon!</p>;
-  }
+    const matchesSearch = meal.name?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesSearch;
+  });
 
   const handleBuyNow = (meal) => {
-    // 1. Pass item to parent state or store
-    if (setCheckoutItem) {
-      setCheckoutItem({
-        name: meal.name,
-        price: meal.price
+    if (typeof setCheckoutItem === 'function') {
+      setCheckoutItem((prevItems) => {
+        // Ensure prevItems is an array
+        const currentItems = Array.isArray(prevItems) ? prevItems : [];
+        const existingIndex = currentItems.findIndex((item) => item.id === meal.id);
+
+        if (existingIndex !== -1) {
+          // Increment quantity if item already exists on the receipt
+          const updated = [...currentItems];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: (updated[existingIndex].quantity || 1) + 1,
+          };
+          return updated;
+        }
+
+        // Append new item to existing receipt list
+        return [
+          ...currentItems,
+          {
+            id: meal.id,
+            name: meal.name,
+            price: meal.price,
+            quantity: 1,
+          },
+        ];
       });
     }
-    // 2. Switch Redux tab to 'checkout'
     dispatch(setActiveTab('checkout'));
   };
 
-  const filteredMeals = todayMenu?.mealOptions.filter((meal) => {
-    const matchesCategory = selectedCategory === 'ALL' || meal.category === selectedCategory;
-    const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const handleAddToCart = (meal) => {
+    if (typeof onAddToCart === 'function') {
+      onAddToCart({
+        id: meal.id,
+        title: meal.name,
+        price: meal.price,
+        formattedPrice: `KSH ${meal.price}`,
+      });
+    }
+  };
 
   return (
     <div>
       <h1 className="font-black text-lg mb-4 uppercase">Today's Menu</h1>
-      {filteredMeals?.length === 0 ? (
-        <p className="text-center py-8 text-gray-500">No meals match your search or filter.</p>
+      {filteredMeals.length === 0 ? (
+        <p className="text-center py-8 text-gray-500">No meals available for today's menu.</p>
       ) : (
         <div className="flex flex-wrap gap-6 justify-center">
-          {filteredMeals?.map((meal) => (
+          {filteredMeals.map((meal) => (
             <FoodCard
               key={meal.id}
               image={null}
@@ -57,14 +85,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
               price={`KSH ${meal.price}`}
               description={meal.description}
               onBuy={() => handleBuyNow(meal)}
-              onAddToCart={() =>
-                onAddToCart({
-                  id: meal.id,
-                  title: meal.name,
-                  price: meal.price,
-                  formattedPrice: `KSH ${meal.price}`,
-                })
-              }
+              onAddToCart={() => handleAddToCart(meal)}
             />
           ))}
         </div>
