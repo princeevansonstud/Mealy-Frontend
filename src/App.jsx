@@ -1,53 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
 import { setCategory, setSearchQuery } from './store/slices/menuSlice';
+
 import CustomerMenuPage from './pages/CustomerMenuPage';
+import CheckoutPage from './pages/CheckoutPage';
+import CustomerOrderHistoryPage from './pages/CustomerOrderHistoryPage';
 
-// Food Card Component
-function FoodCard({ title, price, description, onBuy, onAddToCart }) {
-    return (
-        <div className="w-80 bg-white shadow-md border border-gray-200 overflow-hidden flex flex-col">
-            <div className="w-full h-48 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
-                <span className="text-gray-400 font-bold uppercase text-xs">IMAGE</span>
-            </div>
-
-            <div className="flex justify-between items-center px-4 py-3 bg-white border-b border-gray-200">
-                <span className="font-extrabold text-xs text-black tracking-wider uppercase">{title}</span>
-                <span className="font-extrabold text-xs text-black tracking-wider uppercase">{price}</span>
-            </div>
-
-            <div className="bg-[#FF7A38] p-4 flex flex-col justify-between flex-1">
-                <p className="text-white text-[11px] font-bold uppercase tracking-wider leading-relaxed mb-6">
-                    {description}
-                </p>
-
-                <div className="flex gap-2">
-                    <button
-                        onClick={onBuy}
-                        className="flex-1 bg-black text-white text-[10px] font-black uppercase tracking-wider py-2.5 rounded hover:bg-gray-800 transition-colors"
-                    >
-                        Buy Munchies
-                    </button>
-                    <button
-                        onClick={onAddToCart}
-                        className="flex-1 bg-black text-white text-[10px] font-black uppercase tracking-wider py-2.5 rounded hover:bg-gray-800 transition-colors"
-                    >
-                        Add To FoodCart
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// Category & Search Bar Component matched to Figma design
 function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQuery }) {
     const categories = ['ALL', 'VEGAN', 'BEEF', 'PORK', 'CHICKEN', 'CHEESE', 'GREENS'];
 
     return (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-            {/* Category Filter Buttons */}
             <div className="bg-white px-3 py-2 flex flex-wrap gap-4 items-center border border-gray-200 shadow-sm">
                 {categories.map((cat) => (
                     <button
@@ -61,7 +25,6 @@ function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQue
                 ))}
             </div>
 
-            {/* Search Bar */}
             <div className="flex items-center">
                 <input
                     type="text"
@@ -78,7 +41,6 @@ function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQue
     );
 }
 
-// Footer Component
 function Footer() {
     return (
         <footer className="bg-[#FF7A38] text-white px-12 py-6 mt-auto">
@@ -110,18 +72,16 @@ export default function App() {
     const selectedCategory = useSelector((state) => state.menu.selectedCategory);
     const searchQuery = useSelector((state) => state.menu.searchQuery);
 
-    // State for Cart
     const [cart, setCart] = useState([]);
-    const [checkoutItem, setCheckoutItem] = useState(null);
+    const [checkoutItems, setCheckoutItems] = useState([]);
+    const [orders, setOrders] = useState(() => {
+        const saved = localStorage.getItem('mealy_orders');
+        return saved ? JSON.parse(saved) : [];
+    });
 
-    const testItem = {
-        id: 1,
-        title: 'Beef with Rice',
-        category: 'BEEF',
-        price: 450,
-        formattedPrice: 'KSH 450',
-        description: 'FOOD DESCRIPTION: Tender seasoned beef served over steamed rice with fresh sides.',
-    };
+    useEffect(() => {
+        localStorage.setItem('mealy_orders', JSON.stringify(orders));
+    }, [orders]);
 
     const handleAddToCart = (item) => {
         setCart((prevCart) => {
@@ -133,12 +93,18 @@ export default function App() {
             }
             return [...prevCart, { ...item, quantity: 1 }];
         });
-        alert(`Added ${item.title} to your FoodCart!`);
+        alert(`Added ${item.name || item.title} to your FoodCart!`);
     };
 
-    const handleBuyNow = (item) => {
-        setCheckoutItem(item);
-        dispatch(setActiveTab('checkout'));
+    const handleConfirmOrder = (customerDetails, items) => {
+        const newOrder = {
+            id: Date.now(),
+            customer: customerDetails,
+            items: items,
+            timestamp: new Date().toISOString()
+        };
+        setOrders((prev) => [...prev, newOrder]);
+        setCheckoutItems([]);
     };
 
     const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -147,6 +113,7 @@ export default function App() {
     const navItems = [
         { label: 'MUNCHIES', tabKey: 'munchies' },
         { label: `FOODCART (${totalCartItems})`, tabKey: 'foodcart' },
+        { label: 'MYORDERS', tabKey: 'myorders' },
         { label: 'SIGNUP', tabKey: 'signup' },
         { label: 'LOGIN', tabKey: 'login' },
     ];
@@ -156,7 +123,6 @@ export default function App() {
             case 'munchies':
                 return (
                     <div>
-                        {/* SubHeader with Categories and Search Bar */}
                         <SubHeader
                             activeCategory={selectedCategory}
                             onSelectCategory={(cat) => dispatch(setCategory(cat))}
@@ -164,8 +130,10 @@ export default function App() {
                             setSearchQuery={(query) => dispatch(setSearchQuery(query))}
                         />
 
-                        {/* Today's Menu from Redux (mock data for now) */}
-                        <CustomerMenuPage onAddToCart={handleAddToCart} />
+                        <CustomerMenuPage
+                            onAddToCart={handleAddToCart}
+                            setCheckoutItem={(item) => setCheckoutItems((prev) => [...prev, item])}
+                        />
                     </div>
                 );
 
@@ -180,9 +148,9 @@ export default function App() {
                                 {cart.map((item) => (
                                     <div key={item.id} className="flex justify-between items-center border-b pb-3">
                                         <div>
-                                            <p className="font-bold text-sm uppercase">{item.title}</p>
+                                            <p className="font-bold text-sm uppercase">{item.name || item.title}</p>
                                             <p className="text-xs text-gray-500">
-                                                {item.formattedPrice} x {item.quantity}
+                                                KSH {item.price} x {item.quantity}
                                             </p>
                                         </div>
                                         <p className="font-extrabold text-sm">KSH {item.price * item.quantity}</p>
@@ -194,7 +162,7 @@ export default function App() {
                                 </div>
                                 <button
                                     onClick={() => {
-                                        setCheckoutItem({ title: 'Cart Order', price: cartTotalPrice });
+                                        setCheckoutItems(cart);
                                         dispatch(setActiveTab('checkout'));
                                     }}
                                     className="w-full bg-[#FF7A38] text-white text-xs font-black uppercase py-3 rounded hover:bg-orange-600 transition-colors mt-4"
@@ -208,46 +176,14 @@ export default function App() {
 
             case 'checkout':
                 return (
-                    <div className="bg-white p-6 shadow-md rounded max-w-md mx-auto text-center">
-                        <h2 className="font-black text-lg mb-2 uppercase">Checkout</h2>
-                        {checkoutItem && (
-                            <div className="my-4 p-4 bg-gray-50 rounded border">
-                                <p className="font-bold text-sm">{checkoutItem.title}</p>
-                                <p className="text-xl font-black text-[#FF7A38] mt-1">
-                                    KSH {checkoutItem.price}
-                                </p>
-                            </div>
-                        )}
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                alert('Order placed successfully!');
-                                setCart([]);
-                                dispatch(setActiveTab('munchies'));
-                            }}
-                            className="space-y-3 mt-4"
-                        >
-                            <input
-                                type="text"
-                                placeholder="Delivery Address"
-                                required
-                                className="w-full border p-2 text-xs rounded"
-                            />
-                            <input
-                                type="tel"
-                                placeholder="Phone Number (M-Pesa)"
-                                required
-                                className="w-full border p-2 text-xs rounded"
-                            />
-                            <button
-                                type="submit"
-                                className="w-full bg-black text-white text-xs font-black uppercase py-3 rounded hover:bg-gray-800 transition-colors"
-                            >
-                                Confirm & Pay
-                            </button>
-                        </form>
-                    </div>
+                    <CheckoutPage
+                        checkoutItems={checkoutItems}
+                        onConfirmOrder={handleConfirmOrder}
+                    />
                 );
+
+            case 'myorders':
+                return <CustomerOrderHistoryPage orders={orders} />;
 
             case 'signup':
                 return <div className="p-8 bg-white shadow-sm rounded text-center">Signup Form View</div>;
