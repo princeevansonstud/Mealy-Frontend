@@ -1,16 +1,67 @@
-# React + Vite
+# Mealy — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Mealy is an application that allows customers to make food orders and helps the food vendor know what customers want to eat.
 
-Currently, two official plugins are available:
+## Team
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Full Stack — React (Frontend) & Python Flask (Backend)
 
-## React Compiler
+- **Safia** — Authentication
+- **Marian** — Menu & Ordering
+- **Precious** — Meal & Menu Management
+- **Cherop** — Orders & Earnings
+- **Prince** — Scrum Master & ordering
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the Oxlint configuration
+- **Frontend:** React + Redux Toolkit (state management)
+- **Wireframes:** Figma (mobile-friendly)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Features
+
+### Core
+- User account creation and login
+- Caterer meal management (add, modify, delete meal options)
+- Daily menu setup by caterer
+- Customer menu browsing and meal selection
+- Change meal choice
+- Caterer view of customer orders
+- Daily earnings tracking
+
+### Extra
+- Customer order history
+- Notifications when the daily menu is set
+- Order history for caterers
+- Support for multiple caterers
+
+## Getting Started
+
+### Prerequisites
+- Node.js and npm installed
+
+### Setup
+
+```bash
+git clone git@github.com:princeevansonstud/Mealy-Frontend.git
+cd Mealy-Frontend
+npm install
+npm run dev
+```
+
+The app will run at `http://localhost:5173` by default.
+
+## Project Structure
+src/
+├── assets/ # Static images (e.g. meal photos)
+├── components/ # Shared/reusable UI components
+├── pages/ # Page-level components
+├── store/
+│ └── slices/ # Redux Toolkit slices
+├── App.jsx
+└── main.jsx
+
+## Branching
+
+- `main` — stable branch
+- `dev` — active development, integration branch
+- `feature/*` — individual feature branches, merged into `dev`
