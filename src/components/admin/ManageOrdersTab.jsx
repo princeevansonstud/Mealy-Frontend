@@ -5,6 +5,21 @@ import { updateOrderStatus, deleteOrder } from '../../store/slices/orderSlice';
 export default function ManageOrdersTab({ orders: propOrders }) {
     const dispatch = useDispatch();
 
+    // Helper function to format timestamp to DD-MM-YYYY HH:MM
+    const formatDate = (rawDate) => {
+        if (!rawDate) return 'Just now';
+        const date = new Date(rawDate);
+        if (isNaN(date.getTime())) return rawDate; // Fallback if string isn't standard ISO
+
+        const dd = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+
+        return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+    };
+
     // 1. Read directly from Redux store first
     const storeOrders = useSelector((state) => {
         if (!state.orders) return [];
@@ -59,8 +74,8 @@ export default function ManageOrdersTab({ orders: propOrders }) {
                                     <span className="font-black text-sm uppercase">
                                         Order #{order.id}
                                     </span>
-                                    <span className="text-[10px] bg-gray-200 px-2 py-0.5 rounded font-bold text-gray-600">
-                                        {order.timestamp || order.createdAt || 'Just now'}
+                                    <span className="text-[10px] bg-gray-200 px-2 py-0.5 rounded font-bold text-gray-600 font-mono">
+                                        {formatDate(order.timestamp || order.createdAt || order.date)}
                                     </span>
                                 </div>
                                 <p className="text-xs font-bold text-gray-800">

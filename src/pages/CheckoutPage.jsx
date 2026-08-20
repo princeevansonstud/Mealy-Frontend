@@ -44,7 +44,6 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Enforce digit-only restriction and exact 10 character limit for phone input
     if (name === 'phone') {
       const cleanedValue = value.replace(/\D/g, '');
       if (cleanedValue.length <= 10) {
@@ -78,13 +77,11 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       return;
     }
 
-    // Validate 10-digit exact length
     if (formData.phone.length !== 10) {
       setPhoneError('Phone number must be exactly 10 digits.');
       return;
     }
 
-    // Trigger simulated STK Push modal before wrapping up order state
     setIsProcessingStk(true);
 
     setTimeout(() => {
@@ -100,15 +97,12 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
         totalAmount: totalAmount,
       };
 
-      // 1. Dispatch to Redux Store
+      // 1. Dispatch to Redux Store (ONLY dispatch location for order placement)
       dispatch(addOrder(orderPayload));
 
-      // 2. Call App.jsx handler to sync React local state & localStorage
+      // 2. Call parent callback without passing duplication data
       if (onConfirmOrder) {
-        onConfirmOrder(
-          { name: formData.name, address: formData.address, phone: formData.phone },
-          itemsToDisplay
-        );
+        onConfirmOrder();
       }
 
       // 3. Reset form & navigate to order history page

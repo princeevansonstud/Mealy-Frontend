@@ -16,7 +16,7 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const storeOrders = useSelector((state) => state.orders?.ordersList || []);
 
-    // FIX: If propOrders is passed but empty, fallback to Redux storeOrders
+    // Fallback to Redux storeOrders if propOrders is empty
     const rawOrders = (Array.isArray(propOrders) && propOrders.length > 0) ? propOrders : storeOrders;
 
     const currentUserId = currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.email || currentUser?.name;
@@ -41,8 +41,8 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
     });
 
     const [timeRemaining, setTimeRemaining] = useState(0);
-    const [timerWasStarted, setTimerWasStarted] = useState(false);
     const [feedback, setFeedback] = useState(null);
+    const [hasInteracted, setHasInteracted] = useState(false);
 
     const activeOrders = reduxOrders.filter(
         (o) => o.status !== 'Delivered' && o.status !== 'Cancelled'
@@ -59,10 +59,19 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const hasDispatchedPreparing = useRef(false);
 
+    // Sync interaction state from localStorage on load
+    useEffect(() => {
+        if (latestOrderId) {
+            const interacted = localStorage.getItem(`assessment_done_${latestOrderId}`);
+            setHasInteracted(!!interacted);
+        } else {
+            setHasInteracted(false);
+        }
+    }, [latestOrderId]);
+
     useEffect(() => {
         if (!latestOrderId) {
             setTimeRemaining(0);
-            setTimerWasStarted(false);
             hasDispatchedPreparing.current = false;
             return;
         }
@@ -91,10 +100,6 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
             const elapsed = Math.floor((now - startTimestamp) / 1000);
             const remaining = Math.max(0, COOK_TIME_SECONDS - elapsed);
 
-            if (remaining > 0) {
-                setTimerWasStarted(true);
-            }
-
             setTimeRemaining(remaining);
         };
 
@@ -113,9 +118,11 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const handleFeedback = (responseMsg, isDelivered = true) => {
         setFeedback(responseMsg);
-        setTimerWasStarted(false);
+        setHasInteracted(true);
 
         if (latestActiveOrder) {
+            // Persist that user has interacted with this order's prompt
+            localStorage.setItem(`assessment_done_${latestActiveOrder.id}`, 'true');
             localStorage.removeItem(`order_start_time_${latestActiveOrder.id}`);
 
             const nextStatus = isDelivered ? 'Delivered' : 'Cancelled';
@@ -149,7 +156,8 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
         0
     );
 
-    const showArrivalPrompt = latestActiveOrder && timerWasStarted && timeRemaining === 0;
+    // Show prompt whenever time is up AND user hasn't explicitly clicked an option
+    const showArrivalPrompt = latestActiveOrder && timeRemaining === 0 && !hasInteracted;
 
     return (
         <div className="w-full max-w-5xl mx-auto py-6 space-y-8">

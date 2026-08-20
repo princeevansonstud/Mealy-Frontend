@@ -5,7 +5,7 @@ import { restoreSession, logout } from './store/slices/authSlice';
 import { setCategory, setSearchQuery } from './store/slices/menuSlice';
 
 // IMPORT REDUX ORDER ACTIONS
-import { addOrder, updateOrderStatus, deleteOrder } from './store/slices/orderSlice';
+import { updateOrderStatus, deleteOrder } from './store/slices/orderSlice';
 
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -176,19 +176,9 @@ export default function App() {
         alert(`Added ${item.name || item.title} to your FoodCart!`);
     };
 
-    const handleConfirmOrder = (customerDetails, items) => {
-        const currentUserId = currentUser?.id || currentUser?.email || currentUser?.name;
-
-        const newOrderData = {
-            userId: currentUserId,
-            customer: customerDetails,
-            items: items,
-            status: 'Pending',
-        };
-
-        // DISPATCH DIRECTLY TO REDUX
-        dispatch(addOrder(newOrderData));
-
+    const handleConfirmOrder = () => {
+        // Redux order dispatch is handled by CheckoutPage.jsx
+        // This handler now strictly handles local component state & localStorage cleanup
         setCheckoutItems([]);
         localStorage.removeItem('mealy_checkout_items');
         localStorage.removeItem('mealy_checkout_end_time');
