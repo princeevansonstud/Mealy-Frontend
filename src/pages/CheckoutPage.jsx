@@ -31,10 +31,11 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       : [];
 
   const itemsToDisplay = rawItems.map((item) => ({
-    name: item.name || item.title || 'Selected Meal',
-    price: Number(item.price) || 0,
-    quantity: item.quantity || 1,
-  }));
+  name: item.name || item.title || 'Selected Meal',
+  price: Number(item.price) || 0,
+  quantity: item.quantity || 1,
+  imageUrl: item.imageUrl,
+}));
 
   const totalAmount = itemsToDisplay.reduce(
     (sum, item) => sum + item.price * item.quantity,

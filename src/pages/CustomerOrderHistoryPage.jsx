@@ -191,10 +191,12 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
                                             key={`${item.orderId}-${idx}`}
                                             className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden flex flex-col"
                                         >
-                                            <div className="w-full h-28 bg-gray-200 flex items-center justify-center border-b border-gray-200">
-                                                <span className="text-gray-400 font-bold uppercase text-[10px]">
-                                                    IMAGE
-                                                </span>
+                                            <div className="w-full h-28 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
+                                                {item.imageUrl ? (
+                                                    <img src={item.imageUrl} alt={item.name || item.title} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
+                                                )}
                                             </div>
                                             <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold">
                                                 <span>{item.name || item.title}</span>
@@ -224,10 +226,12 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
                                                     key={`${order.id}-${idx}`}
                                                     className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col"
                                                 >
-                                                    <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200">
-                                                        <span className="text-gray-400 font-bold uppercase text-[10px]">
-                                                            IMAGE
-                                                        </span>
+                                                    <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
+                                                        {item.imageUrl ? (
+                                                            <img src={item.imageUrl} alt={item.name || item.title} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
+                                                        )}
                                                     </div>
                                                     <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold text-gray-600">
                                                         <span>{item.name || item.title}</span>

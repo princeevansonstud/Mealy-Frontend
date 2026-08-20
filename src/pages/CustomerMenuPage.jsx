@@ -68,6 +68,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
             name: meal.name,
             price: meal.price,
             quantity: 1,
+            imageUrl: meal.imageUrl,
           },
         ];
       });
