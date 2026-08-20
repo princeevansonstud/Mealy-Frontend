@@ -98,7 +98,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
           {filteredMeals.map((meal) => (
             <FoodCard
               key={meal.id}
-              image={null}
+              image={meal.imageUrl}
               title={meal.name}
               price={`KSH ${meal.price}`}
               description={meal.description}

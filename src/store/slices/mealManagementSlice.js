@@ -1,5 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+import beefWithRiceImg from '../../assets/meals/beef-with-rice.avif';
+import beefWithFriesImg from '../../assets/meals/beef-with-fries.avif';
+import chickenStewImg from '../../assets/meals/chicken-stew-with-ugali.avif';
+import veganBowlImg from '../../assets/meals/vegan-buddha-bowl.avif';
+import cheesyWrapImg from '../../assets/meals/cheesy-greens-wrap.avif';
+
+
+
+
 // Load from localStorage or use defaults
 const loadStorage = (key, fallback) => {
   try {
@@ -11,11 +20,11 @@ const loadStorage = (key, fallback) => {
 };
 
 const initialMealOptions = [
-  { id: 1, name: 'BEEF WITH RICE', price: 250, description: 'SLOW-COOKED BEEF, STEAMED RICE, VEG', category: 'BEEF' },
-  { id: 2, name: 'BEEF WITH FRIES', price: 280, description: 'GRILLED BEEF, CRISPY FRIES, SALAD', category: 'BEEF' },
-  { id: 3, name: 'CHICKEN STEW WITH UGALI', price: 220, description: 'HOME-STYLE CHICKEN STEW, UGALI', category: 'CHICKEN' },
-  { id: 4, name: 'VEGAN BUDDHA BOWL', price: 200, description: 'FRESH VEGGIES, QUINOA, TAHINI DRESSING', category: 'VEGAN' },
-  { id: 5, name: 'CHEESY GREENS WRAP', price: 180, description: 'SPINACH, CHEESE, TORTILLA WRAP', category: 'CHEESE' },
+  { id: 1, name: 'BEEF WITH RICE', price: 250, description: 'SLOW-COOKED BEEF, STEAMED RICE, VEG', category: 'BEEF', imageUrl: beefWithRiceImg },
+  { id: 2, name: 'BEEF WITH FRIES', price: 280, description: 'GRILLED BEEF, CRISPY FRIES, SALAD', category: 'BEEF', imageUrl: beefWithFriesImg },
+  { id: 3, name: 'CHICKEN STEW WITH UGALI', price: 220, description: 'HOME-STYLE CHICKEN STEW, UGALI', category: 'CHICKEN', imageUrl: chickenStewImg },
+  { id: 4, name: 'VEGAN BUDDHA BOWL', price: 200, description: 'FRESH VEGGIES, QUINOA, TAHINI DRESSING', category: 'VEGAN', imageUrl: veganBowlImg },
+  { id: 5, name: 'CHEESY GREENS WRAP', price: 180, description: 'SPINACH, CHEESE, TORTILLA WRAP', category: 'CHEESE', imageUrl: cheesyWrapImg },
 ];
 
 const initialState = {
