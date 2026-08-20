@@ -48,10 +48,12 @@ function LoginPage() {
 
     dispatch(loginSuccess(loggedInUser));
 
-    if (loggedInUser.role === 'customer') {
-      dispatch(setActiveTab('munchies'));
-    } else if (loggedInUser.role === 'caterer') {
+    // ACCEPTS BOTH 'caterer' AND 'admin' ROLES
+    const userRole = loggedInUser.role?.toLowerCase();
+    if (userRole === 'admin' || userRole === 'caterer') {
       dispatch(setActiveTab('caterer-dashboard'));
+    } else {
+      dispatch(setActiveTab('munchies'));
     }
   };
 

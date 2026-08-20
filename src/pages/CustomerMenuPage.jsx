@@ -10,6 +10,17 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
   const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
 
+  // Check current user authentication status
+  const reduxUser = useSelector((state) => state.auth?.user);
+  const currentUser = reduxUser || (() => {
+    try {
+      const saved = localStorage.getItem('mealyCurrentUser');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
   // Filter active meals for daily menu
   const activeMeals = mealOptions.filter((meal) => dailyMenu.includes(meal.id));
 
@@ -29,6 +40,13 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   });
 
   const handleBuyNow = (meal) => {
+    // Block unauthenticated users and redirect straight to the login form
+    if (!currentUser) {
+      alert('Please log in or sign up to make a purchase.');
+      dispatch(setActiveTab('login'));
+      return;
+    }
+
     if (typeof setCheckoutItem === 'function') {
       setCheckoutItem((prevItems) => {
         const currentItems = Array.isArray(prevItems) ? prevItems : [];
@@ -54,6 +72,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
         ];
       });
     }
+
     dispatch(setActiveTab('checkout'));
   };
 

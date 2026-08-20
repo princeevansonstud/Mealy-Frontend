@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
-import { loginSuccess } from '../store/slices/authSlice';
 
 function SignupPage() {
   const dispatch = useDispatch();
@@ -10,6 +9,7 @@ function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('customer');
 
   const [error, setError] = useState('');
 
@@ -50,25 +50,15 @@ function SignupPage() {
       name,
       email,
       password,
-      role: 'customer',
+      role,
     };
 
+    // Save registered user to local storage
     const updatedUsers = [...users, newUser];
     localStorage.setItem('mealyUsers', JSON.stringify(updatedUsers));
 
-    const loggedInUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-    };
-
-    // Save active session & update Redux auth state
-    localStorage.setItem('mealyCurrentUser', JSON.stringify(loggedInUser));
-    dispatch(loginSuccess(loggedInUser));
-
-    // Redirect directly to menu
-    dispatch(setActiveTab('munchies'));
+    // Redirect user directly to the login form after successful registration
+    dispatch(setActiveTab('login'));
   };
 
   return (
@@ -125,6 +115,25 @@ function SignupPage() {
               placeholder="Enter your email"
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="role"
+              className="block text-xs font-bold uppercase mb-1"
+            >
+              Account Type
+            </label>
+
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border border-gray-300 px-3 py-3 text-sm font-bold bg-white focus:outline-none focus:border-[#FF7A38]"
+            >
+              <option value="customer">CUSTOMER</option>
+              <option value="admin">ADMIN / CATERER</option>
+            </select>
           </div>
 
           <div>

@@ -118,9 +118,10 @@ export default function App() {
         }
     })();
 
-    const [userRole, setUserRole] = useState(() => {
-        return currentUser?.role === 'caterer' ? 'admin' : 'customer';
-    });
+    // STRICT ROLE DERIVATION: Unauthenticated guests are always treated as 'customer'
+    const userRole = currentUser && (currentUser.role === 'caterer' || currentUser.role === 'admin')
+        ? 'admin'
+        : 'customer';
 
     const [cart, setCart] = useState([]);
 
@@ -148,12 +149,6 @@ export default function App() {
         if (storedUser) {
             const user = JSON.parse(storedUser);
             dispatch(restoreSession(user));
-
-            if (user.role === 'customer') {
-                setUserRole('customer');
-            } else if (user.role === 'caterer' || user.role === 'admin') {
-                setUserRole('admin');
-            }
         }
     }, [dispatch]);
 
@@ -161,7 +156,14 @@ export default function App() {
         localStorage.setItem('mealy_checkout_items', JSON.stringify(checkoutItems));
     }, [checkoutItems]);
 
+    // PREVENT UNREGISTERED OR LOGGED-OUT USERS FROM PURCHASING
     const handleAddToCart = (item) => {
+        if (!currentUser) {
+            alert('Please log in or sign up to add items to your cart and make a purchase.');
+            dispatch(setActiveTab('login'));
+            return;
+        }
+
         setCart((prevCart) => {
             const existing = prevCart.find((i) => i.id === item.id);
             if (existing) {
@@ -216,19 +218,21 @@ export default function App() {
         dispatch(setActiveTab('login'));
     };
 
-    const handleRoleSwitch = (role) => {
-        setUserRole(role);
-        if (role === 'admin') {
-            dispatch(setActiveTab('caterer-dashboard'));
-        } else {
-            dispatch(setActiveTab('munchies'));
-        }
-    };
-
     const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    const renderCustomerContent = () => {
+    const renderMainContent = () => {
+        // Render Admin Dashboard ONLY if an authenticated admin user is logged in or actively requesting the caterer dashboard
+        if (currentUser && (userRole === 'admin' || currentTab === 'caterer-dashboard')) {
+            return (
+                <AdminDashboardPage
+                    orders={orders}
+                    onUpdateOrderStatus={handleUpdateOrderStatus}
+                    onDeleteOrder={handleDeleteOrder}
+                />
+            );
+        }
+
         switch (currentTab) {
             case 'munchies':
             case 'customer-dashboard':
@@ -242,7 +246,14 @@ export default function App() {
                         />
                         <CustomerMenuPage
                             onAddToCart={handleAddToCart}
-                            setCheckoutItem={setCheckoutItems}
+                            setCheckoutItem={(items) => {
+                                if (!currentUser) {
+                                    alert('Please log in or sign up to make a purchase.');
+                                    dispatch(setActiveTab('login'));
+                                    return;
+                                }
+                                setCheckoutItems(items);
+                            }}
                         />
                     </div>
                 );
@@ -320,35 +331,13 @@ export default function App() {
                 return <LoginPage />;
 
             default:
-                return null;
+                return <LoginPage />;
         }
     };
 
     return (
         <div className="min-h-screen bg-[#E5E5E5] flex flex-col justify-between">
             <div>
-                <div className="bg-black text-white px-12 py-2 text-xs flex justify-between items-center border-b border-gray-800">
-                    <span>
-                        Viewing Mode: <strong className="text-[#FF7A38] uppercase">{userRole}</strong>
-                    </span>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => handleRoleSwitch('admin')}
-                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${userRole === 'admin' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
-                                }`}
-                        >
-                            Caterer Mode
-                        </button>
-                        <button
-                            onClick={() => handleRoleSwitch('customer')}
-                            className={`px-3 py-1 rounded text-[11px] font-bold uppercase transition-colors ${userRole === 'customer' ? 'bg-[#FF7A38] text-white' : 'bg-gray-800 text-gray-300'
-                                }`}
-                        >
-                            Customer Mode
-                        </button>
-                    </div>
-                </div>
-
                 <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5">
                     <div
                         className="font-black text-xl text-white tracking-widest cursor-pointer"
@@ -357,62 +346,64 @@ export default function App() {
                         MEALY
                     </div>
 
-                    {userRole === 'customer' && (
-                        <nav className="flex items-center gap-6">
-                            <button
-                                onClick={() => dispatch(setActiveTab('munchies'))}
-                                className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'munchies' ? 'underline underline-offset-4 text-black' : ''
-                                    }`}
-                            >
-                                MUNCHIES
-                            </button>
-                            <button
-                                onClick={() => dispatch(setActiveTab('foodcart'))}
-                                className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'foodcart' ? 'underline underline-offset-4 text-black' : ''
-                                    }`}
-                            >
-                                FOODCART ({totalCartItems})
-                            </button>
-                            <button
-                                onClick={() => dispatch(setActiveTab('myorders'))}
-                                className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'myorders' ? 'underline underline-offset-4 text-black' : ''
-                                    }`}
-                            >
-                                MYORDERS
-                            </button>
+                    <nav className="flex items-center gap-6">
+                        {userRole === 'customer' && currentUser && (
+                            <>
+                                <button
+                                    onClick={() => dispatch(setActiveTab('munchies'))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'munchies' ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    MUNCHIES
+                                </button>
+                                <button
+                                    onClick={() => dispatch(setActiveTab('foodcart'))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'foodcart' ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    FOODCART ({totalCartItems})
+                                </button>
+                                <button
+                                    onClick={() => dispatch(setActiveTab('myorders'))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'myorders' ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    MYORDERS
+                                </button>
+                            </>
+                        )}
 
-                            {currentUser ? (
-                                <div className="flex items-center gap-3">
-                                    <span className="text-white text-xs font-black uppercase tracking-wider">
-                                        {currentUser.name || currentUser.fullName || currentUser.email}
-                                    </span>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="bg-red-600 text-white text-xs font-black uppercase px-3 py-1.5 rounded hover:bg-red-700 transition-colors"
-                                    >
-                                        LOGOUT
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => dispatch(setActiveTab('signup'))}
-                                        className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'signup' ? 'underline underline-offset-4 text-black' : ''
-                                            }`}
-                                    >
-                                        SIGNUP
-                                    </button>
-                                    <button
-                                        onClick={() => dispatch(setActiveTab('login'))}
-                                        className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'login' ? 'underline underline-offset-4 text-black' : ''
-                                            }`}
-                                    >
-                                        LOGIN
-                                    </button>
-                                </>
-                            )}
-                        </nav>
-                    )}
+                        {currentUser ? (
+                            <div className="flex items-center gap-3">
+                                <span className="text-white text-xs font-black uppercase tracking-wider">
+                                    {currentUser.name || currentUser.fullName || currentUser.email} ({userRole})
+                                </span>
+                                <button
+                                    onClick={handleLogout}
+                                    className="bg-red-600 text-white text-xs font-black uppercase px-3 py-1.5 rounded hover:bg-red-700 transition-colors"
+                                >
+                                    LOGOUT
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => dispatch(setActiveTab('signup'))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'signup' ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    SIGNUP
+                                </button>
+                                <button
+                                    onClick={() => dispatch(setActiveTab('login'))}
+                                    className={`text-white text-xs font-bold tracking-wide hover:text-black transition-colors ${currentTab === 'login' ? 'underline underline-offset-4 text-black' : ''
+                                        }`}
+                                >
+                                    LOGIN
+                                </button>
+                            </>
+                        )}
+                    </nav>
                 </header>
 
                 {currentUser && userRole === 'customer' && menuNotification && (
@@ -428,15 +419,7 @@ export default function App() {
                 )}
 
                 <main className="max-w-6xl mx-auto px-12 py-8">
-                    {userRole === 'admin' || currentTab === 'caterer-dashboard' ? (
-                        <AdminDashboardPage
-                            orders={orders}
-                            onUpdateOrderStatus={handleUpdateOrderStatus}
-                            onDeleteOrder={handleDeleteOrder}
-                        />
-                    ) : (
-                        renderCustomerContent()
-                    )}
+                    {renderMainContent()}
                 </main>
             </div>
 

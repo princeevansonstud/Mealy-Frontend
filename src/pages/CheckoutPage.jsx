@@ -21,6 +21,9 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
     phone: '',
   });
 
+  const [phoneError, setPhoneError] = useState('');
+  const [isProcessingStk, setIsProcessingStk] = useState(false);
+
   const rawItems = Array.isArray(checkoutItems)
     ? checkoutItems
     : checkoutItems
@@ -39,7 +42,19 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
   );
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Enforce digit-only restriction and exact 10 character limit for phone input
+    if (name === 'phone') {
+      const cleanedValue = value.replace(/\D/g, '');
+      if (cleanedValue.length <= 10) {
+        setFormData((prev) => ({ ...prev, phone: cleanedValue }));
+        if (phoneError) setPhoneError('');
+      }
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCancel = () => {
@@ -63,34 +78,60 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       return;
     }
 
-    const orderPayload = {
-      customerName: formData.name,
-      customerEmail: currentUser?.email || '',
-      userId: currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.name || '',
-      deliveryAddress: formData.address,
-      phone: formData.phone,
-      items: itemsToDisplay,
-      totalAmount: totalAmount,
-    };
-
-    // 1. Dispatch to Redux Store
-    dispatch(addOrder(orderPayload));
-
-    // 2. Call App.jsx handler to sync React local state & localStorage
-    if (onConfirmOrder) {
-      onConfirmOrder(
-        { name: formData.name, address: formData.address, phone: formData.phone },
-        itemsToDisplay
-      );
+    // Validate 10-digit exact length
+    if (formData.phone.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+      return;
     }
 
-    // 3. Reset form & navigate to order history page
-    setFormData({ name: '', address: '', phone: '' });
-    dispatch(setActiveTab('myorders'));
+    // Trigger simulated STK Push modal before wrapping up order state
+    setIsProcessingStk(true);
+
+    setTimeout(() => {
+      setIsProcessingStk(false);
+
+      const orderPayload = {
+        customerName: formData.name,
+        customerEmail: currentUser?.email || '',
+        userId: currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.name || '',
+        deliveryAddress: formData.address,
+        phone: formData.phone,
+        items: itemsToDisplay,
+        totalAmount: totalAmount,
+      };
+
+      // 1. Dispatch to Redux Store
+      dispatch(addOrder(orderPayload));
+
+      // 2. Call App.jsx handler to sync React local state & localStorage
+      if (onConfirmOrder) {
+        onConfirmOrder(
+          { name: formData.name, address: formData.address, phone: formData.phone },
+          itemsToDisplay
+        );
+      }
+
+      // 3. Reset form & navigate to order history page
+      setFormData({ name: '', address: '', phone: '' });
+      dispatch(setActiveTab('myorders'));
+    }, 3000);
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto py-6">
+    <div className="w-full max-w-6xl mx-auto py-6 relative">
+      {/* Simulated Frontend STK Push Overlay */}
+      {isProcessingStk && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center space-y-4">
+            <div className="w-12 h-12 border-4 border-[#FF7A38] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <h3 className="font-black text-base uppercase">Sending M-Pesa Prompt...</h3>
+            <p className="text-xs text-gray-600">
+              Please check your phone (<strong>{formData.phone}</strong>) and enter your M-Pesa PIN to complete payment of <strong>KSH {totalAmount}</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-black text-center mb-8 uppercase tracking-wide">
         Checkout
       </h1>
@@ -127,16 +168,27 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
               />
             </div>
 
-            <div className="flex items-center justify-between gap-2">
-              <label className="font-extrabold text-sm w-32">Phone Number :</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="flex-1 bg-gray-200 p-2 text-xs rounded outline-none font-medium"
-                required
-              />
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <label className="font-extrabold text-sm w-32">Phone Number :</label>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="07XXXXXXXX"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="flex-1 bg-gray-200 p-2 text-xs rounded outline-none font-medium"
+                  required
+                />
+              </div>
+              <div className="flex justify-end mt-1">
+                <div className="w-full pl-[8rem]">
+                  <p className="text-[10px] text-gray-500 font-bold">For Mpesa Payment</p>
+                  {phoneError && (
+                    <p className="text-[10px] text-red-600 font-bold mt-0.5">{phoneError}</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-6">
