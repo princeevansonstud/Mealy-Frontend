@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
 import { addOrder } from '../store/slices/orderSlice';
 
-export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
+export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCancelCheckout }) {
   const dispatch = useDispatch();
+
+  const currentUser = useSelector((state) => state.auth?.user) || (() => {
+    try {
+      const saved = localStorage.getItem('mealyCurrentUser');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,7 +43,11 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
   };
 
   const handleCancel = () => {
-    dispatch(setActiveTab('munchies'));
+    if (onCancelCheckout) {
+      onCancelCheckout();
+    } else {
+      dispatch(setActiveTab('munchies'));
+    }
   };
 
   const handleAddMore = () => {
@@ -50,21 +63,28 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder }) {
       return;
     }
 
-    dispatch(
-      addOrder({
-        customerName: formData.name,
-        deliveryAddress: formData.address,
-        phone: formData.phone,
-        items: itemsToDisplay,
-        totalAmount: totalAmount,
-        createdAt: new Date().toISOString(),
-      })
-    );
+    const orderPayload = {
+      customerName: formData.name,
+      customerEmail: currentUser?.email || '',
+      userId: currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.name || '',
+      deliveryAddress: formData.address,
+      phone: formData.phone,
+      items: itemsToDisplay,
+      totalAmount: totalAmount,
+    };
 
-    if (typeof onConfirmOrder === 'function') {
-      onConfirmOrder(formData, itemsToDisplay);
+    // 1. Dispatch to Redux Store
+    dispatch(addOrder(orderPayload));
+
+    // 2. Call App.jsx handler to sync React local state & localStorage
+    if (onConfirmOrder) {
+      onConfirmOrder(
+        { name: formData.name, address: formData.address, phone: formData.phone },
+        itemsToDisplay
+      );
     }
 
+    // 3. Reset form & navigate to order history page
     setFormData({ name: '', address: '', phone: '' });
     dispatch(setActiveTab('myorders'));
   };

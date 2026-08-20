@@ -1,29 +1,53 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+// Helper to load existing orders from localStorage on app startup
+const loadSavedOrders = () => {
+    try {
+        const saved = localStorage.getItem('mealy_orders');
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        console.error('Could not load orders from localStorage:', e);
+        return [];
+    }
+};
+
+// Helper to safely write back to localStorage
+const saveOrders = (orders) => {
+    try {
+        localStorage.setItem('mealy_orders', JSON.stringify(orders));
+    } catch (e) {
+        console.error('Could not save orders to localStorage:', e);
+    }
+};
+
 const orderSlice = createSlice({
     name: 'orders',
     initialState: {
-        ordersList: [],
+        ordersList: loadSavedOrders(),
     },
     reducers: {
         addOrder: (state, action) => {
-            state.ordersList.unshift({
+            const newOrder = {
                 id: Date.now(),
                 status: 'Pending',
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                createdAt: new Date().toISOString(),
                 ...action.payload,
-            });
+            };
+            state.ordersList.unshift(newOrder);
+            saveOrders(state.ordersList);
         },
         updateOrderStatus: (state, action) => {
             const { orderId, status } = action.payload;
-            const order = state.ordersList.find((o) => o.id === orderId);
+            const order = state.ordersList.find((o) => String(o.id) === String(orderId));
             if (order) {
                 order.status = status;
+                saveOrders(state.ordersList);
             }
         },
         deleteOrder: (state, action) => {
             const orderId = action.payload;
-            state.ordersList = state.ordersList.filter((order) => order.id !== orderId);
+            state.ordersList = state.ordersList.filter((order) => String(order.id) !== String(orderId));
+            saveOrders(state.ordersList);
         },
     },
 });

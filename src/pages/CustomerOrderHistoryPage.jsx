@@ -1,18 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateOrderStatus } from '../store/slices/orderSlice';
 
-export default function CustomerOrderHistoryPage() {
+export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateOrderStatus }) {
     const dispatch = useDispatch();
 
-    // Retrieve orders from Redux store
-    const reduxOrders = useSelector((state) => state.orders?.ordersList || []);
+    const currentUser = useSelector((state) => state.auth?.user) || (() => {
+        try {
+            const saved = localStorage.getItem('mealyCurrentUser');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    const storeOrders = useSelector((state) => state.orders?.ordersList || []);
+
+    // FIX: If propOrders is passed but empty, fallback to Redux storeOrders
+    const rawOrders = (Array.isArray(propOrders) && propOrders.length > 0) ? propOrders : storeOrders;
+
+    const currentUserId = currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.email || currentUser?.name;
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.isAdmin === true;
+
+    // Filter active/guest orders matching user session
+    const reduxOrders = rawOrders.filter((order) => {
+        if (isAdmin) return true;
+
+        const orderOwner =
+            order.userId ||
+            order.customerEmail ||
+            order.customerId ||
+            order.customer?.id ||
+            order.customer?.email ||
+            order.customerName ||
+            order.customer?.name;
+
+        if (!currentUserId || !orderOwner) return true;
+
+        return String(orderOwner).trim().toLowerCase() === String(currentUserId).trim().toLowerCase();
+    });
 
     const [timeRemaining, setTimeRemaining] = useState(0);
-    const [feedback, setFeedback] = useState(null);
     const [timerWasStarted, setTimerWasStarted] = useState(false);
+    const [feedback, setFeedback] = useState(null);
 
-    // Filter active vs completed orders based on status string
     const activeOrders = reduxOrders.filter(
         (o) => o.status !== 'Delivered' && o.status !== 'Cancelled'
     );
@@ -21,37 +52,47 @@ export default function CustomerOrderHistoryPage() {
     );
 
     const latestActiveOrder = activeOrders.length > 0 ? activeOrders[0] : null;
-
-    // Safe Primitive Dependency prevents infinite loops
     const latestOrderId = latestActiveOrder?.id;
+    const latestOrderStatus = latestActiveOrder?.status;
+
+    const rawCreatedTime = latestActiveOrder?.createdAt || latestActiveOrder?.timestamp;
+
+    const hasDispatchedPreparing = useRef(false);
 
     useEffect(() => {
-        if (!latestActiveOrder) {
+        if (!latestOrderId) {
             setTimeRemaining(0);
             setTimerWasStarted(false);
+            hasDispatchedPreparing.current = false;
             return;
         }
 
-        const COOK_TIME_SECONDS = 300; // 5-minute countdown
-        const orderTimestamp = latestActiveOrder.createdAt
-            ? new Date(latestActiveOrder.createdAt).getTime()
-            : Date.now();
+        if (!isAdmin && latestOrderStatus === 'Pending' && !hasDispatchedPreparing.current) {
+            hasDispatchedPreparing.current = true;
+            if (onUpdateOrderStatus) {
+                onUpdateOrderStatus(latestOrderId, { status: 'Preparing' });
+            } else {
+                dispatch(updateOrderStatus({ orderId: latestOrderId, status: 'Preparing' }));
+            }
+        }
+
+        const COOK_TIME_SECONDS = 300; // 5 Minutes
+        const storageKey = `order_start_time_${latestOrderId}`;
+        let startTimestamp = Number(localStorage.getItem(storageKey));
+
+        if (!startTimestamp) {
+            const parsedTime = Date.parse(rawCreatedTime);
+            startTimestamp = !isNaN(parsedTime) ? parsedTime : Date.now();
+            localStorage.setItem(storageKey, String(startTimestamp));
+        }
 
         const updateTimer = () => {
             const now = Date.now();
-            const elapsed = Math.floor((now - orderTimestamp) / 1000);
+            const elapsed = Math.floor((now - startTimestamp) / 1000);
             const remaining = Math.max(0, COOK_TIME_SECONDS - elapsed);
 
             if (remaining > 0) {
                 setTimerWasStarted(true);
-                if (latestActiveOrder.status === 'Pending') {
-                    dispatch(
-                        updateOrderStatus({
-                            orderId: latestActiveOrder.id,
-                            status: 'Preparing',
-                        })
-                    );
-                }
             }
 
             setTimeRemaining(remaining);
@@ -59,14 +100,15 @@ export default function CustomerOrderHistoryPage() {
 
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
+
         return () => clearInterval(interval);
-    }, [latestOrderId, dispatch]);
+    }, [latestOrderId, latestOrderStatus, rawCreatedTime, dispatch, onUpdateOrderStatus, isAdmin]);
 
     const formatTime = (seconds) => {
         if (seconds <= 0) return '00 : 00';
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins} Min : ${secs < 10 ? '0' : ''}${secs} Sec`;
+        return `${mins < 10 ? '0' : ''}${mins} Min : ${secs < 10 ? '0' : ''}${secs} Sec`;
     };
 
     const handleFeedback = (responseMsg, isDelivered = true) => {
@@ -74,26 +116,31 @@ export default function CustomerOrderHistoryPage() {
         setTimerWasStarted(false);
 
         if (latestActiveOrder) {
-            dispatch(
-                updateOrderStatus({
-                    orderId: latestActiveOrder.id,
-                    status: isDelivered ? 'Delivered' : 'Cancelled',
-                })
-            );
+            localStorage.removeItem(`order_start_time_${latestActiveOrder.id}`);
+
+            const nextStatus = isDelivered ? 'Delivered' : 'Cancelled';
+            if (onUpdateOrderStatus) {
+                onUpdateOrderStatus(latestActiveOrder.id, { status: nextStatus });
+            } else {
+                dispatch(
+                    updateOrderStatus({
+                        orderId: latestActiveOrder.id,
+                        status: nextStatus,
+                    })
+                );
+            }
         }
     };
 
-    // Normalize active order items to fix line total & grand total calculations
     const currentReceiptItems = (latestActiveOrder?.items || []).map((item) => {
         const qty = Number(item.quantity) || 1;
         const unitPrice = Number(item.unitPrice || item.price) || 0;
-        const lineTotal = unitPrice * qty;
 
         return {
             name: item.name || item.title || 'Food Item',
             quantity: qty,
             unitPrice: unitPrice,
-            lineTotal: lineTotal,
+            lineTotal: unitPrice * qty,
         };
     });
 
@@ -102,17 +149,15 @@ export default function CustomerOrderHistoryPage() {
         0
     );
 
-    const showArrivalPrompt =
-        timerWasStarted && timeRemaining === 0 && latestActiveOrder;
+    const showArrivalPrompt = latestActiveOrder && timerWasStarted && timeRemaining === 0;
 
     return (
         <div className="w-full max-w-5xl mx-auto py-6 space-y-8">
             <h1 className="text-2xl font-black text-center uppercase tracking-wide">
-                My Orders
+                {isAdmin ? 'Admin - All Customer Orders' : 'My Orders'}
             </h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                {/* Left Column: Active & Past Orders */}
                 <div className="space-y-6">
                     <div>
                         <h2 className="font-extrabold text-sm mb-3 uppercase tracking-wider text-black">
@@ -163,33 +208,26 @@ export default function CustomerOrderHistoryPage() {
                                 {pastOrders.map((order) => (
                                     <div key={order.id} className="space-y-2">
                                         <p className="text-[11px] font-bold text-gray-500">
-                                            Delivered at: {order.completedAt || 'Earlier Today'}
+                                            Status: {order.status}
                                         </p>
                                         <div className="grid grid-cols-2 gap-4 filter grayscale opacity-75">
-                                            {(order.items || [])
-                                                .flatMap((item) =>
-                                                    Array.from(
-                                                        { length: item.quantity || 1 },
-                                                        () => item
-                                                    )
-                                                )
-                                                .map((item, idx) => (
-                                                    <div
-                                                        key={`${order.id}-${idx}`}
-                                                        className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col"
-                                                    >
-                                                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200">
-                                                            <span className="text-gray-400 font-bold uppercase text-[10px]">
-                                                                IMAGE
-                                                            </span>
-                                                        </div>
-                                                        <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold text-gray-600">
-                                                            <span>{item.name || item.title}</span>
-                                                            <span>KSH {item.unitPrice || item.price}</span>
-                                                        </div>
-                                                        <div className="bg-gray-400 p-2 min-h-[20px]" />
+                                            {(order.items || []).map((item, idx) => (
+                                                <div
+                                                    key={`${order.id}-${idx}`}
+                                                    className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col"
+                                                >
+                                                    <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200">
+                                                        <span className="text-gray-400 font-bold uppercase text-[10px]">
+                                                            IMAGE
+                                                        </span>
                                                     </div>
-                                                ))}
+                                                    <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold text-gray-600">
+                                                        <span>{item.name || item.title}</span>
+                                                        <span>KSH {item.unitPrice || item.price}</span>
+                                                    </div>
+                                                    <div className="bg-gray-400 p-2 min-h-[20px]" />
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 ))}
@@ -198,11 +236,10 @@ export default function CustomerOrderHistoryPage() {
                     )}
                 </div>
 
-                {/* Right Column: Timer & Order Status */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-lg p-6 shadow-sm min-h-[260px] flex flex-col">
                         <h2 className="text-center font-bold text-base mb-2">
-                            Processing Your Order
+                            Processing {latestActiveOrder ? `Order #${latestActiveOrder.id}` : 'Your Order'}
                         </h2>
                         <hr className="border-black mb-4" />
 
@@ -246,12 +283,13 @@ export default function CustomerOrderHistoryPage() {
                         </div>
 
                         {showArrivalPrompt && (
-                            <div className="mt-4 space-y-3">
+                            <div className="mt-4 space-y-3 border-t pt-3">
                                 <p className="text-xs font-bold text-gray-700">
                                     Has your food arrived?
                                 </p>
                                 <div className="flex justify-center gap-3">
                                     <button
+                                        type="button"
                                         onClick={() =>
                                             handleFeedback('Order delivered successfully!', true)
                                         }
@@ -260,6 +298,7 @@ export default function CustomerOrderHistoryPage() {
                                         Yes
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() =>
                                             handleFeedback('Order reported delay.', false)
                                         }

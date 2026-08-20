@@ -5,6 +5,7 @@ import FoodCard from '../components/FoodCard';
 
 export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const dispatch = useDispatch();
+
   const { mealOptions = [], dailyMenu = [] } = useSelector((state) => state.mealManagement || {});
   const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
   const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
@@ -30,12 +31,10 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const handleBuyNow = (meal) => {
     if (typeof setCheckoutItem === 'function') {
       setCheckoutItem((prevItems) => {
-        // Ensure prevItems is an array
         const currentItems = Array.isArray(prevItems) ? prevItems : [];
         const existingIndex = currentItems.findIndex((item) => item.id === meal.id);
 
         if (existingIndex !== -1) {
-          // Increment quantity if item already exists on the receipt
           const updated = [...currentItems];
           updated[existingIndex] = {
             ...updated[existingIndex],
@@ -44,7 +43,6 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
           return updated;
         }
 
-        // Append new item to existing receipt list
         return [
           ...currentItems,
           {
@@ -71,10 +69,11 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   };
 
   return (
-    <div>
-      <h1 className="font-black text-lg mb-4 uppercase">Today's Menu</h1>
+    <div className="w-full">
+      <h2 className="font-black text-lg mb-4 uppercase">Today's Menu</h2>
+
       {filteredMeals.length === 0 ? (
-        <p className="text-center py-8 text-gray-500">No meals available for today's menu.</p>
+        <p className="text-center py-8 text-gray-500 font-bold">No meals available for today's menu.</p>
       ) : (
         <div className="flex flex-wrap gap-6 justify-center">
           {filteredMeals.map((meal) => (
