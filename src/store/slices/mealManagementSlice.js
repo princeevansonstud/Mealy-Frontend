@@ -5,6 +5,9 @@ import beefWithFriesImg from '../../assets/meals/beef-with-fries.avif';
 import chickenStewImg from '../../assets/meals/chicken-stew-with-ugali.avif';
 import veganBowlImg from '../../assets/meals/vegan-buddha-bowl.avif';
 import cheesyWrapImg from '../../assets/meals/cheesy-greens-wrap.avif';
+import porkRibsImg from '../../assets/meals/pork-ribs-with-mash.avif';
+import macAndCheeseImg from '../../assets/meals/mac-and-cheese.avif';
+import kaleAvocadoImg from '../../assets/meals/kale-and-avocado.avif';
 
 
 
@@ -25,11 +28,14 @@ const initialMealOptions = [
   { id: 3, name: 'CHICKEN STEW WITH UGALI', price: 220, description: 'HOME-STYLE CHICKEN STEW, UGALI', category: 'CHICKEN', imageUrl: chickenStewImg },
   { id: 4, name: 'VEGAN BUDDHA BOWL', price: 200, description: 'FRESH VEGGIES, QUINOA, TAHINI DRESSING', category: 'VEGAN', imageUrl: veganBowlImg },
   { id: 5, name: 'CHEESY GREENS WRAP', price: 180, description: 'SPINACH, CHEESE, TORTILLA WRAP', category: 'CHEESE', imageUrl: cheesyWrapImg },
+  { id: 6, name: 'PORK RIBS WITH MASH', price: 300, description: 'SLOW-ROASTED PORK RIBS, CREAMY MASHED POTATO', category: 'PORK', imageUrl: porkRibsImg },
+  { id: 7, name: 'MAC AND CHEESE', price: 220, description: 'CREAMY BAKED MACARONI WITH MELTED CHEESE', category: 'CHEESE', imageUrl: macAndCheeseImg },
+  { id: 8, name: 'KALE AND AVOCADO BOWL', price: 190, description: 'FRESH KALE, AVOCADO, TOASTED SEEDS, LEMON DRESSING', category: 'GREENS', imageUrl: kaleAvocadoImg },
 ];
 
 const initialState = {
   mealOptions: loadStorage('mealOptions', initialMealOptions),
-  dailyMenu: loadStorage('dailyMenu', [1, 2, 3, 4, 5]),
+  dailyMenu: loadStorage('dailyMenu', [1, 2, 3, 4, 5, 6, 7, 8]), // Default to all meals
 };
 
 const mealManagementSlice = createSlice({
