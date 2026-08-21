@@ -16,13 +16,11 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const storeOrders = useSelector((state) => state.orders?.ordersList || []);
 
-    // Fallback to Redux storeOrders if propOrders is empty
     const rawOrders = (Array.isArray(propOrders) && propOrders.length > 0) ? propOrders : storeOrders;
 
     const currentUserId = currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.email || currentUser?.name;
     const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.isAdmin === true;
 
-    // Filter active/guest orders matching user session
     const reduxOrders = rawOrders.filter((order) => {
         if (isAdmin) return true;
 
@@ -59,7 +57,7 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const hasDispatchedPreparing = useRef(false);
 
-    // Sync interaction state from localStorage on load
+
     useEffect(() => {
         if (latestOrderId) {
             const interacted = localStorage.getItem(`assessment_done_${latestOrderId}`);
@@ -156,7 +154,7 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
         0
     );
 
-    // Show prompt whenever time is up AND user hasn't explicitly clicked an option
+
     const showArrivalPrompt = latestActiveOrder && timeRemaining === 0 && !hasInteracted;
 
     return (
