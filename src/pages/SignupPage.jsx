@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+
 import { setActiveTab } from '../store/slices/activeTabSlice';
+import { registerUser } from '../api/auth';
 
 function SignupPage() {
   const dispatch = useDispatch();
@@ -13,74 +15,59 @@ function SignupPage() {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError('');
     setSuccess('');
 
-    // Check that all fields are filled
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields.');
       return;
     }
 
-    // Check password length
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
     }
 
-    // Check that passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
 
-    // Get existing users from localStorage
-    const storedUsers = localStorage.getItem('mealyUsers');
-    const users = storedUsers ? JSON.parse(storedUsers) : [];
+    setLoading(true);
 
-    // Check if email already exists
-    const existingUser = users.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
+    try {
+      await registerUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        password_confirm: confirmPassword,
+        role,
+      });
 
-    if (existingUser) {
-      setError('An account with this email already exists.');
-      return;
+      setSuccess(
+        `${role === 'customer' ? 'Customer' : 'Caterer'} account created successfully!`
+      );
+
+      setName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setRole('customer');
+
+    } catch (err) {
+      setError(err.message || 'Registration failed.');
+    } finally {
+      setLoading(false);
     }
-
-    // Create new user
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      password,
-      role,
-    };
-
-    // Add the new user to the existing users
-    const updatedUsers = [...users, newUser];
-
-    // Save users to localStorage
-    localStorage.setItem('mealyUsers', JSON.stringify(updatedUsers));
-
-    setSuccess(
-      `${role === 'customer' ? 'Customer' : 'Caterer'} account created successfully!`
-    );
-
-    // Clear the form
-    setName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setRole('customer');
   };
 
   return (
-    <div className="min-h-screen bg-[#E5E5E5] flex items-center justify-center px-6 py-10">
+    <div className="min-h-screen bg-[#E5E5E5] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md bg-white shadow-md p-8">
 
         <h1 className="text-2xl font-black text-center mb-2">
@@ -105,26 +92,25 @@ function SignupPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Full Name */}
           <div>
             <label
-              htmlFor="name"
+              htmlFor="signup-name"
               className="block text-xs font-bold uppercase mb-1"
             >
-              Full Name
+              Name
             </label>
 
             <input
-              id="name"
+              id="signup-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
-          {/* Email */}
           <div>
             <label
               htmlFor="signup-email"
@@ -139,11 +125,11 @@ function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
-          {/* Password */}
           <div>
             <label
               htmlFor="signup-password"
@@ -157,41 +143,41 @@ function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a password"
+              placeholder="At least 8 characters"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label
-              htmlFor="confirm-password"
+              htmlFor="signup-confirm-password"
               className="block text-xs font-bold uppercase mb-1"
             >
               Confirm Password
             </label>
 
             <input
-              id="confirm-password"
+              id="signup-confirm-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
-          {/* Account Type */}
           <div>
             <label
-              htmlFor="role"
+              htmlFor="signup-role"
               className="block text-xs font-bold uppercase mb-1"
             >
-              Account Type
+              Role
             </label>
 
             <select
-              id="role"
+              id="signup-role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
@@ -201,18 +187,19 @@ function SignupPage() {
             </select>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
-            className="w-full bg-[#FF7A38] text-white py-3 text-sm font-black uppercase hover:bg-orange-600 transition-colors"
+            disabled={loading}
+            className="w-full bg-[#FF7A38] text-white py-3 text-sm font-black uppercase hover:bg-orange-600 transition-colors disabled:opacity-50"
           >
-            Create Account
+            {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
 
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{' '}
+
           <button
             type="button"
             onClick={() => dispatch(setActiveTab('login'))}

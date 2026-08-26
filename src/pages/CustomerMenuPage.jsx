@@ -2,14 +2,55 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { setActiveTab } from '../store/slices/activeTabSlice';
+import { logoutUser } from '../api/auth';
 
 function CustomerMenuPage() {
   const dispatch = useDispatch();
 
-  const handleLogout = () => {
-    localStorage.removeItem('mealyCurrentUser');
-    dispatch(logout());
-    dispatch(setActiveTab('login'));
+  const handleLogout = async () => {
+    const accessToken =
+      localStorage.getItem('mealyAccessToken');
+
+    const refreshToken =
+      localStorage.getItem('mealyRefreshToken');
+
+    try {
+      // Log out from the Django backend
+      if (accessToken && refreshToken) {
+        await logoutUser(
+          accessToken,
+          refreshToken
+        );
+      }
+    } catch (error) {
+      // Even if backend logout fails,
+      // clear the frontend session.
+      console.error(
+        'Backend logout error:',
+        error
+      );
+    } finally {
+      // Remove ALL authentication data
+      localStorage.removeItem(
+        'mealyAccessToken'
+      );
+
+      localStorage.removeItem(
+        'mealyRefreshToken'
+      );
+
+      localStorage.removeItem(
+        'mealyCurrentUser'
+      );
+
+      // Clear Redux authentication state
+      dispatch(logout());
+
+      // Return to login page
+      dispatch(
+        setActiveTab('login')
+      );
+    }
   };
 
   return (
