@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateOrderStatus } from '../store/slices/orderSlice';
 
+import beefWithRiceImg from '../assets/meals/beef-with-rice.avif';
+import beefWithFriesImg from '../assets/meals/beef-with-fries.avif';
+import chickenStewImg from '../assets/meals/chicken-stew-with-ugali.avif';
+import veganBowlImg from '../assets/meals/vegan-buddha-bowl.avif';
+import cheesyWrapImg from '../assets/meals/cheesy-greens-wrap.avif';
+import porkRibsImg from '../assets/meals/pork-ribs-with-mash.avif';
+import macAndCheeseImg from '../assets/meals/mac-and-cheese.avif';
+import kaleAvocadoImg from '../assets/meals/kale-and-avocado.avif';
+import chickenPilauImg from '../assets/meals/chicken-pilau.avif';
+
 export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateOrderStatus }) {
     const dispatch = useDispatch();
 
@@ -19,7 +29,7 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
     const rawOrders = (Array.isArray(propOrders) && propOrders.length > 0) ? propOrders : storeOrders;
 
     const currentUserId = currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.email || currentUser?.name;
-    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.isAdmin === true;
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.role?.toLowerCase() === 'caterer' || currentUser?.isAdmin === true;
 
     const reduxOrders = rawOrders.filter((order) => {
         if (isAdmin) return true;
@@ -57,6 +67,22 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
 
     const hasDispatchedPreparing = useRef(false);
 
+    const localImageMap = {
+        'Beef with Rice': beefWithRiceImg,
+        'Beef with Fries': beefWithFriesImg,
+        'Chicken Stew with Ugali': chickenStewImg,
+        'Vegan Buddha Bowl': veganBowlImg,
+        'Cheesy Greens Wrap': cheesyWrapImg,
+        'Pork Ribs with Mash': porkRibsImg,
+        'Mac and Cheese': macAndCheeseImg,
+        'Kale and Avocado Bowl': kaleAvocadoImg,
+        'Chicken Pilau': chickenPilauImg,
+    };
+
+    const getItemImage = (item) => {
+        const name = item.name || item.title;
+        return localImageMap[name] || item.imageUrl || item.image || null;
+    };
 
     useEffect(() => {
         if (latestOrderId) {
@@ -83,7 +109,7 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
             }
         }
 
-        const COOK_TIME_SECONDS = 300; // 5 Minutes
+        const COOK_TIME_SECONDS = 300;
         const storageKey = `order_start_time_${latestOrderId}`;
         let startTimestamp = Number(localStorage.getItem(storageKey));
 
@@ -119,7 +145,6 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
         setHasInteracted(true);
 
         if (latestActiveOrder) {
-            // Persist that user has interacted with this order's prompt
             localStorage.setItem(`assessment_done_${latestActiveOrder.id}`, 'true');
             localStorage.removeItem(`order_start_time_${latestActiveOrder.id}`);
 
@@ -154,7 +179,6 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
         0
     );
 
-
     const showArrivalPrompt = latestActiveOrder && timeRemaining === 0 && !hasInteracted;
 
     return (
@@ -184,25 +208,28 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
                                             }))
                                         )
                                     )
-                                    .map((item, idx) => (
-                                        <div
-                                            key={`${item.orderId}-${idx}`}
-                                            className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden flex flex-col"
-                                        >
-                                            <div className="w-full h-28 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
-                                                {item.imageUrl ? (
-                                                    <img src={item.imageUrl} alt={item.name || item.title} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
-                                                )}
+                                    .map((item, idx) => {
+                                        const imgSrc = getItemImage(item);
+                                        return (
+                                            <div
+                                                key={`${item.orderId}-${idx}`}
+                                                className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden flex flex-col"
+                                            >
+                                                <div className="w-full h-28 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
+                                                    {imgSrc ? (
+                                                        <img src={imgSrc} alt={item.name || item.title} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
+                                                    )}
+                                                </div>
+                                                <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold">
+                                                    <span>{item.name || item.title}</span>
+                                                    <span>KSH {item.unitPrice || item.price}</span>
+                                                </div>
+                                                <div className="bg-[#FF7A38] p-2 min-h-[24px]" />
                                             </div>
-                                            <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold">
-                                                <span>{item.name || item.title}</span>
-                                                <span>KSH {item.unitPrice || item.price}</span>
-                                            </div>
-                                            <div className="bg-[#FF7A38] p-2 min-h-[24px]" />
-                                        </div>
-                                    ))
+                                        );
+                                    })
                             )}
                         </div>
                     </div>
@@ -219,25 +246,28 @@ export default function CustomerOrderHistoryPage({ orders: propOrders, onUpdateO
                                             Status: {order.status}
                                         </p>
                                         <div className="grid grid-cols-2 gap-4 filter grayscale opacity-75">
-                                            {(order.items || []).map((item, idx) => (
-                                                <div
-                                                    key={`${order.id}-${idx}`}
-                                                    className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col"
-                                                >
-                                                    <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
-                                                        {item.imageUrl ? (
-                                                            <img src={item.imageUrl} alt={item.name || item.title} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
-                                                        )}
+                                            {(order.items || []).map((item, idx) => {
+                                                const imgSrc = getItemImage(item);
+                                                return (
+                                                    <div
+                                                        key={`${order.id}-${idx}`}
+                                                        className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col"
+                                                    >
+                                                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
+                                                            {imgSrc ? (
+                                                                <img src={imgSrc} alt={item.name || item.title} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <span className="text-gray-400 font-bold uppercase text-[10px]">IMAGE</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold text-gray-600">
+                                                            <span>{item.name || item.title}</span>
+                                                            <span>KSH {item.unitPrice || item.price}</span>
+                                                        </div>
+                                                        <div className="bg-gray-400 p-2 min-h-[20px]" />
                                                     </div>
-                                                    <div className="p-2 border-b border-gray-100 flex justify-between items-center text-[10px] font-extrabold text-gray-600">
-                                                        <span>{item.name || item.title}</span>
-                                                        <span>KSH {item.unitPrice || item.price}</span>
-                                                    </div>
-                                                    <div className="bg-gray-400 p-2 min-h-[20px]" />
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}

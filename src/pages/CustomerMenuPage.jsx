@@ -1,4 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import beefWithRiceImg from '../assets/meals/beef-with-rice.avif';
+import beefWithFriesImg from '../assets/meals/beef-with-fries.avif';
+import chickenStewImg from '../assets/meals/chicken-stew-with-ugali.avif';
+import veganBowlImg from '../assets/meals/vegan-buddha-bowl.avif';
+import cheesyWrapImg from '../assets/meals/cheesy-greens-wrap.avif';
+import porkRibsImg from '../assets/meals/pork-ribs-with-mash.avif';
+import macAndCheeseImg from '../assets/meals/mac-and-cheese.avif';
+import kaleAvocadoImg from '../assets/meals/kale-and-avocado.avif';
+import chickenPilauImg from '../assets/meals/chicken-pilau.avif';
+
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
 import FoodCard from '../components/FoodCard';
@@ -10,7 +20,6 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
   const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
 
-  // Check current user authentication status
   const reduxUser = useSelector((state) => state.auth?.user);
   const currentUser = reduxUser || (() => {
     try {
@@ -21,10 +30,8 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
     }
   })();
 
-  // Filter active meals for daily menu
   const activeMeals = mealOptions.filter((meal) => dailyMenu.includes(meal.id));
 
-  // Filter by category and search term
   const filteredMeals = activeMeals.filter((meal) => {
     const activeCatUpper = selectedCategory.toUpperCase();
 
@@ -40,7 +47,6 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   });
 
   const handleBuyNow = (meal) => {
-    // Block unauthenticated users and redirect straight to the login form
     if (!currentUser) {
       alert('Please log in or sign up to make a purchase.');
       dispatch(setActiveTab('login'));
@@ -68,7 +74,6 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
             name: meal.name,
             price: meal.price,
             quantity: 1,
-            imageUrl: meal.imageUrl,
           },
         ];
       });
@@ -88,9 +93,27 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
     }
   };
 
+  const localImageMap = {
+    'Beef with Rice': beefWithRiceImg,
+    'Beef with Fries': beefWithFriesImg,
+    'Chicken Stew with Ugali': chickenStewImg,
+    'Vegan Buddha Bowl': veganBowlImg,
+    'Cheesy Greens Wrap': cheesyWrapImg,
+    'Pork Ribs with Mash': porkRibsImg,
+    'Mac and Cheese': macAndCheeseImg,
+    'Kale and Avocado Bowl': kaleAvocadoImg,
+    'Chicken Pilau': chickenPilauImg,
+  };
+
+  const getMealImage = (meal) => {
+    return localImageMap[meal.name] || meal.image_url || null;
+  };
+
   return (
     <div className="w-full">
-      <h2 className="font-black text-lg mb-4 uppercase">Today's Menu</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="font-black text-lg uppercase">Today's Menu</h2>
+      </div>
 
       {filteredMeals.length === 0 ? (
         <p className="text-center py-8 text-gray-500 font-bold">No meals available for today's menu.</p>
@@ -99,7 +122,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
           {filteredMeals.map((meal) => (
             <FoodCard
               key={meal.id}
-              image={meal.imageUrl}
+              image={getMealImage(meal)}
               title={meal.name}
               price={`KSH ${meal.price}`}
               description={meal.description}

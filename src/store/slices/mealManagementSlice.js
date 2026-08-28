@@ -1,70 +1,55 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { getTodayMenu } from '../../api/meals';
 
-import beefWithRiceImg from '../../assets/meals/beef-with-rice.avif';
-import beefWithFriesImg from '../../assets/meals/beef-with-fries.avif';
-import chickenStewImg from '../../assets/meals/chicken-stew-with-ugali.avif';
-import veganBowlImg from '../../assets/meals/vegan-buddha-bowl.avif';
-import cheesyWrapImg from '../../assets/meals/cheesy-greens-wrap.avif';
-import porkRibsImg from '../../assets/meals/pork-ribs-with-mash.avif';
-import macAndCheeseImg from '../../assets/meals/mac-and-cheese.avif';
-import kaleAvocadoImg from '../../assets/meals/kale-and-avocado.avif';
+export const fetchTodayMenu = createAsyncThunk(
+  'mealManagement/fetchTodayMenu',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await getTodayMenu();
 
+      const mealOptions = data.meals.map((meal) => ({
+        id: meal.meal_option_id || meal.id,
+        name: meal.title || meal.name,
+        category: meal.category,
+        price: meal.price,
+        description: meal.description,
+        image_url: meal.image_url,
+      }));
 
+      const dailyMenu = mealOptions.map((meal) => meal.id);
 
-
-// Load from localStorage or use defaults
-const loadStorage = (key, fallback) => {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch (e) {
-    return fallback;
+      return { mealOptions, dailyMenu };
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to load today menu');
+    }
   }
-};
+);
 
-const initialMealOptions = [
-  { id: 1, name: 'BEEF WITH RICE', price: 250, description: 'SLOW-COOKED BEEF, STEAMED RICE, VEG', category: 'BEEF', imageUrl: beefWithRiceImg },
-  { id: 2, name: 'BEEF WITH FRIES', price: 280, description: 'GRILLED BEEF, CRISPY FRIES, SALAD', category: 'BEEF', imageUrl: beefWithFriesImg },
-  { id: 3, name: 'CHICKEN STEW WITH UGALI', price: 220, description: 'HOME-STYLE CHICKEN STEW, UGALI', category: 'CHICKEN', imageUrl: chickenStewImg },
-  { id: 4, name: 'VEGAN BUDDHA BOWL', price: 200, description: 'FRESH VEGGIES, QUINOA, TAHINI DRESSING', category: 'VEGAN', imageUrl: veganBowlImg },
-  { id: 5, name: 'CHEESY GREENS WRAP', price: 180, description: 'SPINACH, CHEESE, TORTILLA WRAP', category: 'CHEESE', imageUrl: cheesyWrapImg },
-  { id: 6, name: 'PORK RIBS WITH MASH', price: 300, description: 'SLOW-ROASTED PORK RIBS, CREAMY MASHED POTATO', category: 'PORK', imageUrl: porkRibsImg },
-  { id: 7, name: 'MAC AND CHEESE', price: 220, description: 'CREAMY BAKED MACARONI WITH MELTED CHEESE', category: 'CHEESE', imageUrl: macAndCheeseImg },
-  { id: 8, name: 'KALE AND AVOCADO BOWL', price: 190, description: 'FRESH KALE, AVOCADO, TOASTED SEEDS, LEMON DRESSING', category: 'GREENS', imageUrl: kaleAvocadoImg },
+const defaultMealOptions = [
+  { id: 1, name: 'Beef with Rice', category: 'BEEF', price: 450, description: 'Tender beef stew served with fragrant steamed rice.' },
+  { id: 2, name: 'Beef with Fries', category: 'BEEF', price: 500, description: 'Savory beef chunks paired with crispy potato fries.' },
+  { id: 3, name: 'Chicken Stew with Ugali', category: 'CHICKEN', price: 400, description: 'Classic chicken stew with traditional ugali.' },
+  { id: 4, name: 'Vegan Buddha Bowl', category: 'VEGAN', price: 350, description: 'Healthy mix of greens, grains, and fresh veggies.' },
+  { id: 5, name: 'Cheesy Greens Wrap', category: 'CHEESE', price: 300, description: 'Warm tortilla wrapped with melted cheese and fresh greens.' },
+  { id: 6, name: 'Pork Ribs with Mash', category: 'PORK', price: 600, description: 'BBQ glazed pork ribs served with creamy mashed potatoes.' },
+  { id: 7, name: 'Mac and Cheese', category: 'CHEESE', price: 350, description: 'Rich and creamy macaroni coated in warm melted cheese.' },
+  { id: 8, name: 'Kale and Avocado Bowl', category: 'GREENS', price: 300, description: 'Freshly chopped kale topped with avocado slice.' },
+  { id: 9, name: 'Chicken Pilau', category: 'CHICKEN', price: 450, description: 'Spiced rice cooked to perfection with chicken.' },
 ];
 
-const initialState = {
-  mealOptions: loadStorage('mealOptions', initialMealOptions),
-  dailyMenu: loadStorage('dailyMenu', [1, 2, 3, 4, 5, 6, 7, 8]), // Default to all meals
-};
+const initialDailyMenu = defaultMealOptions.map((m) => m.id);
 
 const mealManagementSlice = createSlice({
   name: 'mealManagement',
-  initialState,
+  initialState: {
+    mealOptions: defaultMealOptions,
+    dailyMenu: initialDailyMenu,
+    status: 'idle',
+    error: null,
+  },
   reducers: {
-    addMeal: (state, action) => {
-      const newMeal = { id: Date.now(), ...action.payload };
-      state.mealOptions.push(newMeal);
-      state.dailyMenu.push(newMeal.id);
-
-      localStorage.setItem('mealOptions', JSON.stringify(state.mealOptions));
-      localStorage.setItem('dailyMenu', JSON.stringify(state.dailyMenu));
-    },
-    updateMeal: (state, action) => {
-      const { id, updatedData } = action.payload;
-      const index = state.mealOptions.findIndex((meal) => meal.id === id);
-      if (index !== -1) {
-        state.mealOptions[index] = { ...state.mealOptions[index], ...updatedData };
-        localStorage.setItem('mealOptions', JSON.stringify(state.mealOptions));
-      }
-    },
-    deleteMeal: (state, action) => {
-      const id = action.payload;
-      state.mealOptions = state.mealOptions.filter((meal) => meal.id !== id);
-      state.dailyMenu = state.dailyMenu.filter((mealId) => mealId !== id);
-
-      localStorage.setItem('mealOptions', JSON.stringify(state.mealOptions));
-      localStorage.setItem('dailyMenu', JSON.stringify(state.dailyMenu));
+    setDailyMenu: (state, action) => {
+      state.dailyMenu = action.payload;
     },
     toggleDailyMenuMeal: (state, action) => {
       const mealId = action.payload;
@@ -73,10 +58,49 @@ const mealManagementSlice = createSlice({
       } else {
         state.dailyMenu.push(mealId);
       }
-      localStorage.setItem('dailyMenu', JSON.stringify(state.dailyMenu));
     },
+    addMeal: (state, action) => {
+      const newMeal = {
+        ...action.payload,
+        id: action.payload.id || Date.now(),
+      };
+      state.mealOptions.push(newMeal);
+    },
+    updateMeal: (state, action) => {
+      const index = state.mealOptions.findIndex((meal) => meal.id === action.payload.id);
+      if (index !== -1) {
+        state.mealOptions[index] = { ...state.mealOptions[index], ...action.payload };
+      }
+    },
+    deleteMeal: (state, action) => {
+      state.mealOptions = state.mealOptions.filter((meal) => meal.id !== action.payload);
+      state.dailyMenu = state.dailyMenu.filter((id) => id !== action.payload);
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchTodayMenu.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchTodayMenu.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.mealOptions = action.payload.mealOptions;
+        state.dailyMenu = action.payload.dailyMenu;
+      })
+      .addCase(fetchTodayMenu.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      });
   },
 });
 
-export const { addMeal, updateMeal, deleteMeal, toggleDailyMenuMeal } = mealManagementSlice.actions;
+export const {
+  setDailyMenu,
+  toggleDailyMenuMeal,
+  addMeal,
+  updateMeal,
+  deleteMeal,
+} = mealManagementSlice.actions;
+
 export default mealManagementSlice.reducer;

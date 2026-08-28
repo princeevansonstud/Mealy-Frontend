@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
+import { registerUser } from '../api/auth';
 
 function SignupPage() {
   const dispatch = useDispatch();
@@ -12,11 +13,14 @@ function SignupPage() {
   const [role, setRole] = useState('customer');
 
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError('');
+    setSuccess('');
 
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields.');
@@ -33,38 +37,39 @@ function SignupPage() {
       return;
     }
 
-    const storedUsers = localStorage.getItem('mealyUsers');
-    const users = storedUsers ? JSON.parse(storedUsers) : [];
+    setLoading(true);
 
-    const existingUser = users.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
+    try {
+      await registerUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        password_confirm: confirmPassword,
+        role: role.toLowerCase(),
+      });
 
-    if (existingUser) {
-      setError('An account with this email already exists.');
-      return;
+      setSuccess(
+        `${role === 'customer' ? 'Customer' : 'Caterer'} account created successfully! redirecting to login...`
+      );
+
+      setName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+
+      setTimeout(() => {
+        dispatch(setActiveTab('login'));
+      }, 1500);
+    } catch (err) {
+      setError(err.message || 'Registration failed.');
+    } finally {
+      setLoading(false);
     }
-
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      password,
-      role,
-    };
-
-    // Save registered user to local storage
-    const updatedUsers = [...users, newUser];
-    localStorage.setItem('mealyUsers', JSON.stringify(updatedUsers));
-
-    // Redirect user directly to the login form after successful registration
-    dispatch(setActiveTab('login'));
   };
 
   return (
-    <div className="min-h-screen bg-[#E5E5E5] flex items-center justify-center px-6 py-10">
+    <div className="min-h-screen bg-[#E5E5E5] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md bg-white shadow-md p-8">
-
         <h1 className="text-2xl font-black text-center mb-2">
           SIGN UP
         </h1>
@@ -79,22 +84,28 @@ function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {success && (
+          <div className="bg-green-100 text-green-700 text-sm p-3 mb-4">
+            {success}
+          </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
-              htmlFor="name"
+              htmlFor="signup-name"
               className="block text-xs font-bold uppercase mb-1"
             >
-              Full Name
+              Name
             </label>
 
             <input
-              id="name"
+              id="signup-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
@@ -113,27 +124,9 @@ function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
-          </div>
-
-          <div>
-            <label
-              htmlFor="role"
-              className="block text-xs font-bold uppercase mb-1"
-            >
-              Account Type
-            </label>
-
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full border border-gray-300 px-3 py-3 text-sm font-bold bg-white focus:outline-none focus:border-[#FF7A38]"
-            >
-              <option value="customer">CUSTOMER</option>
-              <option value="admin">ADMIN / CATERER</option>
-            </select>
           </div>
 
           <div>
@@ -149,36 +142,57 @@ function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a password"
+              placeholder="At least 8 characters"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
           <div>
             <label
-              htmlFor="confirm-password"
+              htmlFor="signup-confirm-password"
               className="block text-xs font-bold uppercase mb-1"
             >
               Confirm Password
             </label>
 
             <input
-              id="confirm-password"
+              id="signup-confirm-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
+              required
               className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
             />
           </div>
 
+          <div>
+            <label
+              htmlFor="signup-role"
+              className="block text-xs font-bold uppercase mb-1"
+            >
+              Role
+            </label>
+
+            <select
+              id="signup-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:border-[#FF7A38]"
+            >
+              <option value="customer">Customer</option>
+              <option value="caterer">Caterer</option>
+            </select>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-[#FF7A38] text-white py-3 text-sm font-black uppercase hover:bg-orange-600 transition-colors"
+            disabled={loading}
+            className="w-full bg-[#FF7A38] text-white py-3 text-sm font-black uppercase hover:bg-orange-600 transition-colors disabled:opacity-50"
           >
-            Create Account
+            {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
-
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
@@ -191,7 +205,6 @@ function SignupPage() {
             Login
           </button>
         </p>
-
       </div>
     </div>
   );

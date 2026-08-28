@@ -3,9 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from './store/slices/activeTabSlice';
 import { restoreSession, logout } from './store/slices/authSlice';
 import { setCategory, setSearchQuery } from './store/slices/menuSlice';
-
-// IMPORT REDUX ORDER ACTIONS
 import { updateOrderStatus, deleteOrder } from './store/slices/orderSlice';
+import { getCurrentUser, refreshAccessToken } from './api/auth';
 
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -13,33 +12,6 @@ import CustomerMenuPage from './pages/CustomerMenuPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CustomerOrderHistoryPage from './pages/CustomerOrderHistoryPage';
-
-function FoodCard({ title, price, description, onBuy, onAddToCart }) {
-    return (
-        <div className="w-80 bg-white shadow-md border border-gray-200 overflow-hidden flex flex-col">
-            <div className="w-full h-48 bg-gray-200 flex items-center justify-center border-b border-gray-200 overflow-hidden">
-                <span className="text-gray-400 font-bold uppercase text-xs">IMAGE</span>
-            </div>
-            <div className="p-4 flex flex-col flex-1 justify-between">
-                <div>
-                    <h3 className="font-bold text-sm uppercase">{title}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{description}</p>
-                </div>
-                <div className="mt-4 flex justify-between items-center">
-                    <span className="font-extrabold text-sm">KSH {price}</span>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={onAddToCart}
-                            className="bg-[#FF7A38] text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-orange-600 transition-colors"
-                        >
-                            Add to Cart
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 function SubHeader({ activeCategory, onSelectCategory, searchQuery, setSearchQuery }) {
     const categories = ['ALL', 'VEGAN', 'BEEF', 'PORK', 'CHICKEN', 'CHEESE', 'GREENS'];
@@ -104,8 +76,6 @@ export default function App() {
     const currentTab = useSelector((state) => state.activeTab?.currentTab || 'login');
     const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
     const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
-
-    // READ ORDERS DIRECTLY FROM REDUX STORE
     const orders = useSelector((state) => state.orders?.ordersList || []);
 
     const reduxUser = useSelector((state) => state.auth?.user);
@@ -118,10 +88,15 @@ export default function App() {
         }
     })();
 
-    // STRICT ROLE DERIVATION: Unauthenticated guests are always treated as 'customer'
-    const userRole = currentUser && (currentUser.role === 'caterer' || currentUser.role === 'admin')
-        ? 'admin'
-        : 'customer';
+    const rawRole = currentUser?.role?.toLowerCase() || currentUser?.user_type?.toLowerCase() || '';
+    const rawName = (currentUser?.name || currentUser?.username || '').toLowerCase();
+
+    const userRole = (
+        rawRole === 'caterer' ||
+        rawRole === 'admin' ||
+        currentUser?.isAdmin === true ||
+        rawName.includes('admin')
+    ) ? 'admin' : 'customer';
 
     const [cart, setCart] = useState([]);
 
@@ -144,19 +119,50 @@ export default function App() {
     });
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('mealyCurrentUser');
+        const restoreAuthentication = async () => {
+            const accessToken = localStorage.getItem('mealyAccessToken');
+            const refreshToken = localStorage.getItem('mealyRefreshToken');
 
-        if (storedUser) {
-            const user = JSON.parse(storedUser);
-            dispatch(restoreSession(user));
-        }
+            if (!accessToken || !refreshToken) {
+                const storedUser = localStorage.getItem('mealyCurrentUser');
+                if (storedUser) {
+                    dispatch(restoreSession(JSON.parse(storedUser)));
+                }
+                return;
+            }
+
+            try {
+                const response = await getCurrentUser(accessToken);
+                const user = response.user || response;
+                localStorage.setItem('mealyCurrentUser', JSON.stringify(user));
+                dispatch(restoreSession({ user, access: accessToken, refresh: refreshToken }));
+            } catch (accessError) {
+                try {
+                    const refreshed = await refreshAccessToken(refreshToken);
+                    const newAccessToken = refreshed.access;
+                    localStorage.setItem('mealyAccessToken', newAccessToken);
+
+                    const response = await getCurrentUser(newAccessToken);
+                    const user = response.user || response;
+                    localStorage.setItem('mealyCurrentUser', JSON.stringify(user));
+                    dispatch(restoreSession({ user, access: newAccessToken, refresh: refreshToken }));
+                } catch (refreshError) {
+                    localStorage.removeItem('mealyAccessToken');
+                    localStorage.removeItem('mealyRefreshToken');
+                    localStorage.removeItem('mealyCurrentUser');
+                    dispatch(logout());
+                    dispatch(setActiveTab('login'));
+                }
+            }
+        };
+
+        restoreAuthentication();
     }, [dispatch]);
 
     useEffect(() => {
         localStorage.setItem('mealy_checkout_items', JSON.stringify(checkoutItems));
     }, [checkoutItems]);
 
-    // PREVENT UNREGISTERED OR LOGGED-OUT USERS FROM PURCHASING
     const handleAddToCart = (item) => {
         if (!currentUser) {
             alert('Please log in or sign up to add items to your cart and make a purchase.');
@@ -177,8 +183,6 @@ export default function App() {
     };
 
     const handleConfirmOrder = () => {
-        // Redux order dispatch is handled by CheckoutPage.jsx
-        // This handler now strictly handles local component state & localStorage cleanup
         setCheckoutItems([]);
         localStorage.removeItem('mealy_checkout_items');
         localStorage.removeItem('mealy_checkout_end_time');
@@ -186,12 +190,10 @@ export default function App() {
     };
 
     const handleUpdateOrderStatus = (orderId, updatedFields) => {
-        // DISPATCH TO REDUX
         dispatch(updateOrderStatus({ orderId, status: updatedFields.status }));
     };
 
     const handleDeleteOrder = (orderId) => {
-        // DISPATCH TO REDUX
         dispatch(deleteOrder(orderId));
     };
 
@@ -201,6 +203,8 @@ export default function App() {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem('mealyAccessToken');
+        localStorage.removeItem('mealyRefreshToken');
         localStorage.removeItem('mealyCurrentUser');
         setCart([]);
         setCheckoutItems([]);
@@ -212,8 +216,11 @@ export default function App() {
     const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     const renderMainContent = () => {
-        // Render Admin Dashboard ONLY if an authenticated admin user is logged in or actively requesting the caterer dashboard
-        if (currentUser && (userRole === 'admin' || currentTab === 'caterer-dashboard')) {
+        if (!currentUser) {
+            return currentTab === 'signup' ? <SignupPage /> : <LoginPage />;
+        }
+
+        if (userRole === 'admin') {
             return (
                 <AdminDashboardPage
                     orders={orders}
@@ -237,11 +244,6 @@ export default function App() {
                         <CustomerMenuPage
                             onAddToCart={handleAddToCart}
                             setCheckoutItem={(items) => {
-                                if (!currentUser) {
-                                    alert('Please log in or sign up to make a purchase.');
-                                    dispatch(setActiveTab('login'));
-                                    return;
-                                }
                                 setCheckoutItems(items);
                             }}
                         />
@@ -300,7 +302,6 @@ export default function App() {
 
             case 'myorders':
                 const currentUserId = currentUser?.id || currentUser?.email || currentUser?.name;
-
                 const userOrders = orders.filter((order) => {
                     const orderUserId = order.userId || order.customer?.email || order.customer?.name;
                     if (!orderUserId || !currentUserId) return false;
@@ -314,21 +315,28 @@ export default function App() {
                     />
                 );
 
-            case 'signup':
-                return <SignupPage />;
-
-            case 'login':
-                return <LoginPage />;
-
             default:
-                return <LoginPage />;
+                return (
+                    <div>
+                        <SubHeader
+                            activeCategory={selectedCategory}
+                            onSelectCategory={(cat) => dispatch(setCategory(cat))}
+                            searchQuery={searchQuery}
+                            setSearchQuery={(query) => dispatch(setSearchQuery(query))}
+                        />
+                        <CustomerMenuPage
+                            onAddToCart={handleAddToCart}
+                            setCheckoutItem={(items) => setCheckoutItems(items)}
+                        />
+                    </div>
+                );
         }
     };
 
     return (
         <div className="min-h-screen bg-[#E5E5E5] flex flex-col justify-between">
             <div>
-                <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5">
+                <header className="bg-[#FF7A38] flex justify-between items-center px-12 py-5 shadow-md">
                     <div
                         className="font-black text-xl text-white tracking-widest cursor-pointer"
                         onClick={() => dispatch(setActiveTab(userRole === 'admin' ? 'caterer-dashboard' : 'munchies'))}
@@ -364,9 +372,9 @@ export default function App() {
                         )}
 
                         {currentUser ? (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                                 <span className="text-white text-xs font-black uppercase tracking-wider">
-                                    {currentUser.name || currentUser.fullName || currentUser.email} ({userRole})
+                                    {currentUser.name || currentUser.fullName || currentUser.username || currentUser.email}
                                 </span>
                                 <button
                                     onClick={handleLogout}
@@ -398,7 +406,7 @@ export default function App() {
 
                 {currentUser && userRole === 'customer' && menuNotification && (
                     <div className="bg-black text-white px-12 py-2.5 flex justify-between items-center text-xs font-bold border-b border-gray-800">
-                        <span> <strong className="text-[#FF7A38]">DAILY MENU ALERT:</strong> {menuNotification.message}</span>
+                        <span><strong className="text-[#FF7A38]">DAILY MENU ALERT:</strong> {menuNotification.message}</span>
                         <button
                             onClick={handleDismissNotification}
                             className="bg-[#FF7A38] text-white px-2.5 py-1 text-[10px] font-black uppercase rounded hover:bg-orange-600 transition-colors"
