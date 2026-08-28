@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import beefWithRiceImg from '../assets/meals/beef-with-rice.avif';
+import beefWithFriesImg from '../assets/meals/beef-with-fries.avif';
+import chickenStewImg from '../assets/meals/chicken-stew-with-ugali.avif';
+import veganBowlImg from '../assets/meals/vegan-buddha-bowl.avif';
+import cheesyWrapImg from '../assets/meals/cheesy-greens-wrap.avif';
+import porkRibsImg from '../assets/meals/pork-ribs-with-mash.avif';
+import macAndCheeseImg from '../assets/meals/mac-and-cheese.avif';
+import kaleAvocadoImg from '../assets/meals/kale-and-avocado.avif';
+import chickenPilauImg from '../assets/meals/chicken-pilau.avif';
+
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
 import { logout } from '../store/slices/authSlice';
+import { fetchTodayMenu } from '../store/slices/mealManagementSlice';
 import { logoutUser } from '../api/auth';
 import FoodCard from '../components/FoodCard';
 
@@ -9,6 +20,11 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
   const dispatch = useDispatch();
 
   const { mealOptions = [], dailyMenu = [] } = useSelector((state) => state.mealManagement || {});
+
+  useEffect(() => {
+    dispatch(fetchTodayMenu());
+  }, [dispatch]);
+
   const selectedCategory = useSelector((state) => state.menu?.selectedCategory || 'ALL');
   const searchQuery = useSelector((state) => state.menu?.searchQuery || '');
 
@@ -115,6 +131,22 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
     }
   };
 
+  const localImageMap = {
+    'Beef with Rice': beefWithRiceImg,
+    'Beef with Fries': beefWithFriesImg,
+    'Chicken Stew with Ugali': chickenStewImg,
+    'Vegan Buddha Bowl': veganBowlImg,
+    'Cheesy Greens Wrap': cheesyWrapImg,
+    'Pork Ribs with Mash': porkRibsImg,
+    'Mac and Cheese': macAndCheeseImg,
+    'Kale and Avocado Bowl': kaleAvocadoImg,
+    'Chicken Pilau': chickenPilauImg,
+  };
+
+  const getMealImage = (meal) => {
+    return localImageMap[meal.name] || meal.image_url || null;
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
@@ -137,7 +169,7 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
           {filteredMeals.map((meal) => (
             <FoodCard
               key={meal.id}
-              image={null}
+              image={getMealImage(meal)}
               title={meal.name}
               price={`KSH ${meal.price}`}
               description={meal.description}
