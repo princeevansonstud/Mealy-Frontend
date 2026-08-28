@@ -1,6 +1,8 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
+import { logout } from '../store/slices/authSlice';
+import { logoutUser } from '../api/auth';
 import FoodCard from '../components/FoodCard';
 
 export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
@@ -87,9 +89,46 @@ export default function CustomerMenuPage({ onAddToCart, setCheckoutItem }) {
     }
   };
 
+  const handleLogout = async () => {
+    const accessToken = localStorage.getItem('mealyAccessToken');
+    const refreshToken = localStorage.getItem('mealyRefreshToken');
+
+    try {
+      // Log out from the Django backend
+      if (accessToken && refreshToken) {
+        await logoutUser(accessToken, refreshToken);
+      }
+    } catch (error) {
+      // Even if backend logout fails, clear the frontend session.
+      console.error('Backend logout error:', error);
+    } finally {
+      // Remove ALL authentication data
+      localStorage.removeItem('mealyAccessToken');
+      localStorage.removeItem('mealyRefreshToken');
+      localStorage.removeItem('mealyCurrentUser');
+
+      // Clear Redux authentication state
+      dispatch(logout());
+
+      // Return to login page
+      dispatch(setActiveTab('login'));
+    }
+  };
+
   return (
     <div className="w-full">
-      <h2 className="font-black text-lg mb-4 uppercase">Today's Menu</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="font-black text-lg uppercase">Today's Menu</h2>
+
+        {currentUser && (
+          <button
+            onClick={handleLogout}
+            className="bg-black text-white px-5 py-2 text-xs font-bold uppercase hover:bg-gray-800"
+          >
+            Logout
+          </button>
+        )}
+      </div>
 
       {filteredMeals.length === 0 ? (
         <p className="text-center py-8 text-gray-500 font-bold">No meals available for today's menu.</p>
