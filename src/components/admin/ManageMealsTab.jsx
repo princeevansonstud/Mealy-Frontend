@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addMeal, updateMeal, deleteMeal } from '../../store/slices/mealManagementSlice';
+import {
+    addMeal,
+    updateMeal,
+    deleteMeal,
+} from '../../store/slices/mealManagementSlice';
 
 const CATEGORIES = ['VEGAN', 'BEEF', 'PORK', 'CHICKEN', 'CHEESE', 'GREENS'];
 
 export default function ManageMealsTab() {
     const dispatch = useDispatch();
-
-    // Safely select mealOptions with a fallback empty array
-    const mealOptions = useSelector((state) => state.mealManagement?.mealOptions || []);
+    const { mealOptions = [], status } = useSelector(
+        (state) => state.mealManagement || {}
+    );
 
     const [formData, setFormData] = useState({
         name: '',
@@ -17,31 +21,62 @@ export default function ManageMealsTab() {
         category: 'BEEF',
     });
     const [editingId, setEditingId] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.name || !formData.price) return;
 
         const priceNum = Number(formData.price);
+        const payload = {
+            name: formData.name,
+            price: priceNum,
+            description: formData.description,
+            category: formData.category,
+        };
 
-        if (editingId) {
-            dispatch(updateMeal({ id: editingId, updatedData: { ...formData, price: priceNum } }));
-            setEditingId(null);
-        } else {
-            dispatch(addMeal({ ...formData, price: priceNum }));
+        setSubmitting(true);
+        try {
+            if (editingId) {
+                await dispatch(
+                    updateMeal({ id: editingId, ...payload })
+                ).unwrap();
+                setEditingId(null);
+            } else {
+                dispatch(addMeal(payload));
+            }
+            setFormData({ name: '', price: '', description: '', category: 'BEEF' });
+        } catch (err) {
+            alert(`Operation failed: ${err?.message || err || 'An error occurred'}`);
+        } finally {
+            setSubmitting(false);
         }
-
-        setFormData({ name: '', price: '', description: '', category: 'BEEF' });
     };
 
     const handleEdit = (meal) => {
-        setEditingId(meal.id);
+        const targetId = Number(meal.id ?? meal._id);
+        setEditingId(targetId);
+
         setFormData({
-            name: meal.name,
-            price: meal.price,
+            name: meal.name || meal.title || '',
+            price: meal.price || '',
             description: meal.description || '',
             category: meal.category || 'BEEF',
         });
+    };
+
+    const handleCancel = () => {
+        setEditingId(null);
+        setFormData({ name: '', price: '', description: '', category: 'BEEF' });
+    };
+
+    const handleDelete = async (mealId) => {
+        if (!window.confirm('Are you sure you want to delete this meal option?')) return;
+        try {
+            await dispatch(deleteMeal(mealId)).unwrap();
+        } catch (err) {
+            alert(`Delete failed: ${err?.message || err || 'An error occurred'}`);
+        }
     };
 
     return (
@@ -64,7 +99,6 @@ export default function ManageMealsTab() {
                     />
                 </div>
 
-                {/* Category Selector Input */}
                 <div className="w-36">
                     <label className="text-xs font-bold block mb-1">Category *</label>
                     <select
@@ -103,12 +137,24 @@ export default function ManageMealsTab() {
                     />
                 </div>
 
-                <button
-                    type="submit"
-                    className="bg-[#FF7A38] text-white text-xs font-black uppercase px-4 py-2 hover:bg-orange-600 transition-colors"
-                >
-                    {editingId ? 'Save Changes' : 'Add Meal'}
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        className="bg-[#FF7A38] text-white text-xs font-black uppercase px-4 py-2 hover:bg-orange-600 transition-colors disabled:opacity-50"
+                    >
+                        {submitting ? 'Saving...' : editingId ? 'Save Changes' : 'Add Meal'}
+                    </button>
+                    {editingId && (
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            className="bg-gray-400 text-white text-xs font-black uppercase px-3 py-2 hover:bg-gray-500 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    )}
+                </div>
             </form>
 
             <table className="w-full text-left border-collapse text-xs">
@@ -122,37 +168,46 @@ export default function ManageMealsTab() {
                     </tr>
                 </thead>
                 <tbody>
-                    {mealOptions.length === 0 ? (
+                    {status === 'loading' ? (
+                        <tr>
+                            <td colSpan="5" className="py-4 text-center text-gray-400">
+                                Loading meals...
+                            </td>
+                        </tr>
+                    ) : mealOptions.length === 0 ? (
                         <tr>
                             <td colSpan="5" className="py-4 text-center text-gray-400">
                                 No meal options available. Add one above!
                             </td>
                         </tr>
                     ) : (
-                        mealOptions.map((meal) => (
-                            <tr key={meal.id} className="border-b hover:bg-gray-50">
-                                <td className="py-3 font-bold uppercase">{meal.name}</td>
-                                <td className="py-3 font-bold text-[#FF7A38]">
-                                    {meal.category || 'BEEF'}
-                                </td>
-                                <td className="py-3 text-gray-600">{meal.description}</td>
-                                <td className="py-3 font-bold">KSH {meal.price}</td>
-                                <td className="py-3 text-right space-x-2">
-                                    <button
-                                        onClick={() => handleEdit(meal)}
-                                        className="text-blue-600 font-bold hover:underline"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => dispatch(deleteMeal(meal.id))}
-                                        className="text-red-600 font-bold hover:underline"
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
+                        mealOptions.map((meal) => {
+                            const mealId = Number(meal.id ?? meal._id);
+                            return (
+                                <tr key={mealId} className="border-b hover:bg-gray-50">
+                                    <td className="py-3 font-bold uppercase">{meal.name || meal.title}</td>
+                                    <td className="py-3 font-bold text-[#FF7A38]">
+                                        {meal.category || 'BEEF'}
+                                    </td>
+                                    <td className="py-3 text-gray-600">{meal.description}</td>
+                                    <td className="py-3 font-bold">KSH {meal.price}</td>
+                                    <td className="py-3 text-right space-x-2">
+                                        <button
+                                            onClick={() => handleEdit(meal)}
+                                            className="text-blue-600 font-bold hover:underline"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(mealId)}
+                                            className="text-red-600 font-bold hover:underline"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })
                     )}
                 </tbody>
             </table>

@@ -6,17 +6,28 @@ import { addOrder } from '../store/slices/orderSlice';
 export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCancelCheckout }) {
   const dispatch = useDispatch();
 
-  const currentUser = useSelector((state) => state.auth?.user) || (() => {
+  const authState = useSelector((state) => state.auth);
+
+  const currentUser = authState?.user || (() => {
     try {
-      const saved = localStorage.getItem('mealyCurrentUser');
+      const saved = localStorage.getItem('mealyCurrentUser') || localStorage.getItem('user');
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
     }
   })();
 
+  const token =
+    authState?.token ||
+    currentUser?.token ||
+    currentUser?.access_token ||
+    localStorage.getItem('mealyAccessToken') ||
+    localStorage.getItem('mealyToken') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('access_token');
+
   const [formData, setFormData] = useState({
-    name: '',
+    name: currentUser?.name || currentUser?.username || '',
     address: '',
     phone: '',
   });
@@ -31,11 +42,12 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       : [];
 
   const itemsToDisplay = rawItems.map((item) => ({
-  name: item.name || item.title || 'Selected Meal',
-  price: Number(item.price) || 0,
-  quantity: item.quantity || 1,
-  imageUrl: item.imageUrl,
-}));
+    id: item.daily_menu_item_id || item.id,
+    name: item.name || item.title || 'Selected Meal',
+    price: Number(item.price) || 0,
+    quantity: item.quantity || 1,
+    imageUrl: item.imageUrl,
+  }));
 
   const totalAmount = itemsToDisplay.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -47,7 +59,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
 
     if (name === 'phone') {
       const cleanedValue = value.replace(/\D/g, '');
-      if (cleanedValue.length <= 10) {
+      if (cleanedValue.length <= 12) {
         setFormData((prev) => ({ ...prev, phone: cleanedValue }));
         if (phoneError) setPhoneError('');
       }
@@ -69,7 +81,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
     dispatch(setActiveTab('munchies'));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (itemsToDisplay.length === 0) {
@@ -78,43 +90,132 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       return;
     }
 
-    if (formData.phone.length !== 10) {
-      setPhoneError('Phone number must be exactly 10 digits.');
+    const cleanedPhone = formData.phone.trim().replace(/[\s-]/g, '');
+    const formattedPhone = cleanedPhone.replace(/^(?:\+254|0)/, '254');
+
+    if (!/^254(7|1)\d{8}$/.test(formattedPhone)) {
+      setPhoneError('Please enter a valid Safaricom phone number (e.g., 0712345678).');
       return;
     }
 
     setIsProcessingStk(true);
+    setPhoneError('');
 
-    setTimeout(() => {
-      setIsProcessingStk(false);
-
-      const orderPayload = {
-        customerName: formData.name,
-        customerEmail: currentUser?.email || '',
-        userId: currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.name || '',
-        deliveryAddress: formData.address,
-        phone: formData.phone,
-        items: itemsToDisplay,
-        totalAmount: totalAmount,
+    try {
+      const payload = {
+        phone_number: formattedPhone,
+        total_amount: totalAmount,
+        items: itemsToDisplay.map((item) => ({
+          daily_menu_item_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          unit_price: item.price,
+        })),
       };
 
-      // 1. Dispatch to Redux Store (ONLY dispatch location for order placement)
-      dispatch(addOrder(orderPayload));
+      const cleanToken = token ? token.replace(/^Bearer\s+/i, '').replace(/"/g, '') : '';
 
-      // 2. Call parent callback without passing duplication data
-      if (onConfirmOrder) {
-        onConfirmOrder();
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+      };
+
+      let response;
+      try {
+        response = await fetch('http://127.0.0.1:8000/api/orders/', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        response = await fetch('http://localhost:8000/api/orders/', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
       }
 
-      // 3. Reset form & navigate to order history page
-      setFormData({ name: '', address: '', phone: '' });
-      dispatch(setActiveTab('myorders'));
-    }, 3000);
+      const responseText = await response.text();
+      let data = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch (err) {
+        data = { error: responseText };
+      }
+
+      if (response.ok) {
+        const createdOrderId = data.id || data.orderId;
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`http://127.0.0.1:8000/api/orders/${createdOrderId}/status/`, {
+              headers: { Authorization: `Bearer ${cleanToken}` }
+            });
+            const statusData = await statusRes.json();
+
+            if (
+              statusData.status === 'Paid' ||
+              statusData.status === 'Completed' ||
+              statusData.status === 'Success'
+            ) {
+              clearInterval(pollInterval);
+              setIsProcessingStk(false);
+
+              const orderPayload = {
+                id: createdOrderId,
+                customerName: formData.name,
+                customerEmail: currentUser?.email || '',
+                userId: currentUser?.id || '',
+                deliveryAddress: formData.address,
+                phone: formattedPhone,
+                items: itemsToDisplay,
+                totalAmount: data.total_amount || totalAmount,
+                status: 'Paid',
+                createdAt: data.created_at || new Date().toISOString(),
+              };
+
+              dispatch(addOrder(orderPayload));
+              if (onConfirmOrder) onConfirmOrder();
+              setFormData({ name: '', address: '', phone: '' });
+              dispatch(setActiveTab('myorders'));
+            } else if (
+              statusData.status === 'Payment Failed' ||
+              statusData.status === 'Cancelled'
+            ) {
+              clearInterval(pollInterval);
+              setIsProcessingStk(false);
+              alert('Payment failed or was cancelled on your phone.');
+            }
+          } catch (err) {
+            console.error('Error polling order status:', err);
+          }
+        }, 2000);
+
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setIsProcessingStk((currentlyProcessing) => {
+            if (currentlyProcessing) {
+              alert('Payment completed or timed out. Redirecting to My Orders...');
+              dispatch(setActiveTab('myorders'));
+            }
+            return false;
+          });
+        }, 30000);
+
+      } else {
+        setIsProcessingStk(false);
+        const errorMessage = typeof data === 'object' ? JSON.stringify(data) : data;
+        alert(errorMessage || 'Failed to initiate M-Pesa payment.');
+      }
+    } catch (error) {
+      setIsProcessingStk(false);
+      console.error('STK Push Error:', error);
+      alert('Could not connect to backend server. Make sure Django is running on http://127.0.0.1:8000.');
+    }
   };
 
   return (
     <div className="w-full max-w-6xl mx-auto py-6 relative">
-      {/* Simulated Frontend STK Push Overlay */}
       {isProcessingStk && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center space-y-4">
@@ -132,7 +233,6 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
       </h1>
 
       <div className="flex flex-col md:flex-row justify-between items-center md:items-stretch gap-6">
-        {/* Form Card */}
         <div className="w-full md:w-5/12 bg-white border-4 border-[#FF7A38] rounded-3xl p-6 shadow-sm flex flex-col justify-between">
           <h2 className="text-center font-bold text-base mb-6 underline">
             Checkout Form :
@@ -204,18 +304,16 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
           </form>
         </div>
 
-        {/* Action Button */}
         <div className="flex items-center justify-center my-4 md:my-0">
           <button
             type="button"
             onClick={handleAddMore}
-            className="bg-[#FF7A38] text-white font-black text-xs px-4 py-3 rounded-xl shadow-md hover:bg-orange-600 transition-colors uppercase text-center tracking-wide"
+            className="bg-[#FF7A38] text-[#ffffff] font-black text-xs px-4 py-3 rounded-xl shadow-md hover:bg-orange-600 transition-colors uppercase text-center tracking-wide"
           >
             Add More Munchies
           </button>
         </div>
 
-        {/* Processing Order Details */}
         <div className="w-full md:w-5/12 bg-white rounded-lg p-6 shadow-sm flex flex-col min-h-[320px]">
           <h2 className="text-center font-bold text-base mb-2">Processing Your Order</h2>
           <hr className="border-black mb-6" />

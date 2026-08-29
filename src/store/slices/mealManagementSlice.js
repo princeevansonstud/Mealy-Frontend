@@ -1,19 +1,20 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getTodayMenu } from '../../api/meals';
+import { getTodayMenu, updateMealOption } from '../../api/meals';
 
 export const fetchTodayMenu = createAsyncThunk(
   'mealManagement/fetchTodayMenu',
   async (_, { rejectWithValue }) => {
     try {
       const data = await getTodayMenu();
+      const mealsArray = data.meals || data.items || [];
 
-      const mealOptions = data.meals.map((meal) => ({
-        id: meal.meal_option_id || meal.id,
-        name: meal.title || meal.name,
-        category: meal.category,
-        price: meal.price,
-        description: meal.description,
-        image_url: meal.image_url,
+      const mealOptions = mealsArray.map((meal) => ({
+        id: Number(meal.meal_option_id ?? meal.id),
+        name: meal.name || meal.title || '',
+        category: meal.category || 'BEEF',
+        price: Number(meal.price || 0),
+        description: meal.description || '',
+        image_url: meal.image_url || '',
       }));
 
       const dailyMenu = mealOptions.map((meal) => meal.id);
@@ -21,6 +22,46 @@ export const fetchTodayMenu = createAsyncThunk(
       return { mealOptions, dailyMenu };
     } catch (err) {
       return rejectWithValue(err.message || 'Failed to load today menu');
+    }
+  }
+);
+
+export const updateMeal = createAsyncThunk(
+  'mealManagement/updateMeal',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { id, updatedData, ...flatFields } = payload;
+      const targetId = id;
+      const dataToSubmit = updatedData || flatFields;
+
+      const response = await updateMealOption(targetId, dataToSubmit);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to update meal');
+    }
+  }
+);
+
+export const deleteMeal = createAsyncThunk(
+  'mealManagement/deleteMeal',
+  async (id, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://127.0.0.1:8000/api/meals/options/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Failed to delete meal');
+      }
+
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to delete meal');
     }
   }
 );
@@ -61,20 +102,13 @@ const mealManagementSlice = createSlice({
     },
     addMeal: (state, action) => {
       const newMeal = {
-        ...action.payload,
-        id: action.payload.id || Date.now(),
+        id: Number(action.payload.id || Date.now()),
+        name: action.payload.name || action.payload.title || '',
+        category: action.payload.category || 'BEEF',
+        price: Number(action.payload.price || 0),
+        description: action.payload.description || '',
       };
       state.mealOptions.push(newMeal);
-    },
-    updateMeal: (state, action) => {
-      const index = state.mealOptions.findIndex((meal) => meal.id === action.payload.id);
-      if (index !== -1) {
-        state.mealOptions[index] = { ...state.mealOptions[index], ...action.payload };
-      }
-    },
-    deleteMeal: (state, action) => {
-      state.mealOptions = state.mealOptions.filter((meal) => meal.id !== action.payload);
-      state.dailyMenu = state.dailyMenu.filter((id) => id !== action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -91,6 +125,34 @@ const mealManagementSlice = createSlice({
       .addCase(fetchTodayMenu.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
+      })
+      .addCase(updateMeal.fulfilled, (state, action) => {
+        const returnedData = action.payload;
+        const targetId = Number(returnedData.id ?? returnedData.meal_option_id);
+
+        const index = state.mealOptions.findIndex(
+          (meal) => Number(meal.id) === targetId
+        );
+
+        if (index !== -1) {
+          state.mealOptions[index] = {
+            ...state.mealOptions[index],
+            ...returnedData,
+            id: targetId,
+            name: returnedData.name || returnedData.title || state.mealOptions[index].name,
+          };
+        }
+      })
+      .addCase(updateMeal.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(deleteMeal.fulfilled, (state, action) => {
+        const targetId = Number(action.payload);
+        state.mealOptions = state.mealOptions.filter((meal) => Number(meal.id) !== targetId);
+        state.dailyMenu = state.dailyMenu.filter((id) => Number(id) !== targetId);
+      })
+      .addCase(deleteMeal.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
@@ -99,8 +161,6 @@ export const {
   setDailyMenu,
   toggleDailyMenuMeal,
   addMeal,
-  updateMeal,
-  deleteMeal,
 } = mealManagementSlice.actions;
 
 export default mealManagementSlice.reducer;
