@@ -1,4 +1,4 @@
-const API_URL = `${process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000'}/api/auth`;
+const API_URL = 'https://mealy-backend-x1t.onrender.com/api/auth';
 
 export async function registerUser(userData) {
   const response = await fetch(`${API_URL}/register/`, {
