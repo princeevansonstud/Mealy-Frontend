@@ -18,7 +18,6 @@ import SignupPage from './pages/SignupPage';
 import CustomerMenuPage from './pages/CustomerMenuPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 
-
 // ============================================================
 // CATEGORY + SEARCH BAR
 // ============================================================
@@ -170,7 +169,7 @@ export default function App() {
                 );
 
                 dispatch(logout());
-                dispatch(setActiveTab('login'));
+                dispatch(setActiveTab('munchies'));
 
                 return;
             }
