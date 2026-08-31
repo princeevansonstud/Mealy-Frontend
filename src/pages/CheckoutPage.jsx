@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setActiveTab } from '../store/slices/activeTabSlice';
 import { addOrder } from '../store/slices/orderSlice';
 
+const API_URL = 'https://mealy-backend-x1it.onrender.com';
+
 export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCancelCheckout }) {
   const dispatch = useDispatch();
 
@@ -120,20 +122,11 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
         ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
       };
 
-      let response;
-      try {
-        response = await fetch('http://127.0.0.1:8000/api/orders/', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        });
-      } catch (err) {
-        response = await fetch('http://localhost:8000/api/orders/', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        });
-      }
+      const response = await fetch(`${API_URL}/api/orders/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
 
       const responseText = await response.text();
       let data = {};
@@ -148,7 +141,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
 
         const pollInterval = setInterval(async () => {
           try {
-            const statusRes = await fetch(`http://127.0.0.1:8000/api/orders/${createdOrderId}/status/`, {
+            const statusRes = await fetch(`${API_URL}/api/orders/${createdOrderId}/status/`, {
               headers: { Authorization: `Bearer ${cleanToken}` }
             });
             const statusData = await statusRes.json();
@@ -210,7 +203,7 @@ export default function CheckoutPage({ checkoutItems = [], onConfirmOrder, onCan
     } catch (error) {
       setIsProcessingStk(false);
       console.error('STK Push Error:', error);
-      alert('Could not connect to backend server. Make sure Django is running on http://127.0.0.1:8000.');
+      alert('Could not connect to the server. Please try again in a moment.');
     }
   };
 
