@@ -1,4 +1,4 @@
-const API_URL = 'https://mealy-backend-x1t.onrender.com/api/auth';
+const API_URL = 'https://mealy-backend-x1it.onrender.com';
 
 export async function registerUser(userData) {
   const response = await fetch(`${API_URL}/register/`, {
