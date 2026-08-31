@@ -1,7 +1,7 @@
 const API_URL = 'https://mealy-backend-x1it.onrender.com';
 
 export async function registerUser(userData) {
-  const response = await fetch(`${API_URL}/register/`, {
+  const response = await fetch(`${API_URL}/api/auth/register/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ export async function registerUser(userData) {
 }
 
 export async function loginUser(email, password) {
-  const response = await fetch(`${API_URL}/login/`, {
+  const response = await fetch(`${API_URL}/api/auth/login/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export async function loginUser(email, password) {
 }
 
 export async function getCurrentUser(accessToken) {
-  const response = await fetch(`${API_URL}/me/`, {
+  const response = await fetch(`${API_URL}/api/auth/me/`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -72,7 +72,7 @@ export async function getCurrentUser(accessToken) {
 }
 
 export async function refreshAccessToken(refreshToken) {
-  const response = await fetch(`${API_URL}/token/refresh/`, {
+  const response = await fetch(`${API_URL}/api/auth/token/refresh/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export async function refreshAccessToken(refreshToken) {
 }
 
 export async function logoutUser(accessToken, refreshToken) {
-  const response = await fetch(`${API_URL}/logout/`, {
+  const response = await fetch(`${API_URL}/api/auth/logout/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
