@@ -10,7 +10,7 @@ export default function FoodCard({
 }) {
     return (
         <div className="w-80 bg-white border border-gray-200 rounded shadow-sm overflow-hidden flex flex-col">
-            {/* Image Container */}
+
             <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
                 {image ? (
                     <img src={image} alt={title} className="w-full h-full object-cover" />
@@ -19,19 +19,18 @@ export default function FoodCard({
                 )}
             </div>
 
-            {/* Title & Price Header */}
+
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100">
                 <h3 className="font-bold text-sm text-gray-800 tracking-wide uppercase">{title}</h3>
                 <span className="font-black text-xs text-black">{price}</span>
             </div>
 
-            {/* Orange Description & Actions Area */}
             <div className="bg-[#FF7A38] p-4 flex flex-col justify-between flex-1 text-white">
                 <p className="text-xs uppercase font-medium leading-relaxed tracking-wider mb-4 opacity-95">
                     {description}
                 </p>
 
-                {/* Action Buttons */}
+
                 <div className="flex gap-2 pt-2">
                     <button
                         onClick={onBuy}

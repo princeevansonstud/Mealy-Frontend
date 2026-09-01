@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 
 export default function RevenueAnalytics() {
-    // Grab orders from your Redux store
+
     const reduxOrders = useSelector((state) => state.orders?.ordersList || []);
 
     const stats = useMemo(() => {
-        // Exclude cancelled orders from revenue metrics
+
         const validOrders = reduxOrders.filter((o) => o.status !== 'Cancelled');
 
         let revenue = 0;
@@ -36,7 +36,7 @@ export default function RevenueAnalytics() {
                 Revenue Analytics
             </h2>
 
-            {/* Top Metric Cards */}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -66,7 +66,7 @@ export default function RevenueAnalytics() {
                 </div>
             </div>
 
-            {/* Breakdown Table */}
+
             <div className="mt-8">
                 <h3 className="text-sm font-bold uppercase text-gray-600 mb-3">
                     Completed Transactions ({stats.totalOrders})
