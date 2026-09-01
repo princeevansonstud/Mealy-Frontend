@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  currentTab: 'daily-menu',
+  currentTab: 'munchies',
 };
 
 const activeTabSlice = createSlice({

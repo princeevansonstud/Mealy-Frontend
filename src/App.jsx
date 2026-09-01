@@ -217,7 +217,24 @@ export default function App() {
 
     const renderMainContent = () => {
         if (!currentUser) {
-            return currentTab === 'signup' ? <SignupPage /> : <LoginPage />;
+            if (currentTab === 'signup') return <SignupPage />;
+            if (currentTab === 'login') return <LoginPage />;
+            return (
+                <div>
+                    <SubHeader
+                        activeCategory={selectedCategory}
+                        onSelectCategory={(cat) => dispatch(setCategory(cat))}
+                        searchQuery={searchQuery}
+                        setSearchQuery={(query) => dispatch(setSearchQuery(query))}
+                    />
+                    <CustomerMenuPage
+                        onAddToCart={handleAddToCart}
+                        setCheckoutItem={(items) => {
+                            setCheckoutItems(items);
+                        }}
+                    />
+                </div>
+            );
         }
 
         if (userRole === 'admin') {
