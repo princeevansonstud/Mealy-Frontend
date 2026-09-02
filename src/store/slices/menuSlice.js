@@ -7,7 +7,7 @@ import veganBowlImg from '../../assets/meals/vegan-buddha-bowl.avif';
 import cheesyWrapImg from '../../assets/meals/cheesy-greens-wrap.avif';
 
 
-// ---- MOCK DATA (remove once backend is ready) ----
+
 const MOCK_TODAY_MENU = {
   id: 1,
   date: new Date().toISOString().split('T')[0],
