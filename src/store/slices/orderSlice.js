@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Helper to load existing orders from localStorage on app startup
+
 const loadSavedOrders = () => {
     try {
         const saved = localStorage.getItem('mealy_orders');
@@ -11,7 +11,6 @@ const loadSavedOrders = () => {
     }
 };
 
-// Helper to safely write back to localStorage
 const saveOrders = (orders) => {
     try {
         localStorage.setItem('mealy_orders', JSON.stringify(orders));

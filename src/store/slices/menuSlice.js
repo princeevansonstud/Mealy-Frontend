@@ -7,7 +7,6 @@ import veganBowlImg from '../../assets/meals/vegan-buddha-bowl.avif';
 import cheesyWrapImg from '../../assets/meals/cheesy-greens-wrap.avif';
 
 
-
 const MOCK_TODAY_MENU = {
   id: 1,
   date: new Date().toISOString().split('T')[0],

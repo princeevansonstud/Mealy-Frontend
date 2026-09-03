@@ -5,11 +5,11 @@ import { updateOrderStatus, deleteOrder } from '../../store/slices/orderSlice';
 export default function ManageOrdersTab({ orders: propOrders }) {
     const dispatch = useDispatch();
 
-    // Helper function to format timestamp to DD-MM-YYYY HH:MM
+
     const formatDate = (rawDate) => {
         if (!rawDate) return 'Just now';
         const date = new Date(rawDate);
-        if (isNaN(date.getTime())) return rawDate; // Fallback if string isn't standard ISO
+        if (isNaN(date.getTime())) return rawDate;
 
         const dd = String(date.getDate()).padStart(2, '0');
         const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -20,7 +20,7 @@ export default function ManageOrdersTab({ orders: propOrders }) {
         return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
     };
 
-    // 1. Read directly from Redux store first
+
     const storeOrders = useSelector((state) => {
         if (!state.orders) return [];
         if (Array.isArray(state.orders.ordersList)) return state.orders.ordersList;
@@ -29,7 +29,7 @@ export default function ManageOrdersTab({ orders: propOrders }) {
         return [];
     });
 
-    // 2. ONLY fallback to propOrders if Redux is empty
+
     const orders = storeOrders.length > 0 ? storeOrders : (propOrders || []);
 
     const handleDelete = (orderId) => {
@@ -42,7 +42,7 @@ export default function ManageOrdersTab({ orders: propOrders }) {
         dispatch(updateOrderStatus({ orderId, status: newStatus }));
     };
 
-    // Calculate sum dynamically if order.totalAmount isn't set properly
+
     const calculateTotal = (order) => {
         if (order.totalAmount && Number(order.totalAmount) > 0) {
             return order.totalAmount;

@@ -15,7 +15,6 @@ export default function SetupMenuTab() {
                 </p>
             </div>
 
-            {/* Daily Menu Grid */}
             {mealOptions.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                     <p>No meal options available in the system.</p>
@@ -30,11 +29,10 @@ export default function SetupMenuTab() {
                             <div
                                 key={meal.id}
                                 onClick={() => dispatch(toggleDailyMenuMeal(meal.id))}
-                                className={`p-4 rounded-md border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                                    isSelected
+                                className={`p-4 rounded-md border-2 cursor-pointer transition-all flex flex-col justify-between ${isSelected
                                         ? 'border-peach-orange bg-peach-orange/5 shadow-sm'
                                         : 'border-gray-200 bg-white hover:border-gray-300'
-                                }`}
+                                    }`}
                             >
                                 <div className="flex justify-between items-start gap-2">
                                     <div>
@@ -46,7 +44,7 @@ export default function SetupMenuTab() {
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
-                                        onChange={() => {}} // Handled by outer card click
+                                        onChange={() => { }}
                                         className="w-5 h-5 accent-peach-orange cursor-pointer mt-0.5"
                                     />
                                 </div>
@@ -56,11 +54,10 @@ export default function SetupMenuTab() {
                                         KSh {typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price}
                                     </span>
                                     <span
-                                        className={`text-xs px-2 py-0.5 rounded font-medium ${
-                                            isSelected
+                                        className={`text-xs px-2 py-0.5 rounded font-medium ${isSelected
                                                 ? 'bg-peach-orange text-white'
                                                 : 'bg-gray-100 text-gray-600'
-                                        }`}
+                                            }`}
                                     >
                                         {isSelected ? 'On Menu' : 'Click to Add'}
                                     </span>

@@ -11,7 +11,7 @@ const Navbar = () => {
 
     const userRole = user?.role || 'customer';
 
-    // Handle logout action
+
     const handleLogout = () => {
         localStorage.removeItem('mealyAccessToken');
         localStorage.removeItem('mealyRefreshToken');
@@ -20,14 +20,14 @@ const Navbar = () => {
         dispatch(setActiveTab('login'));
     };
 
-    // Customer navigation items when logged in
+
     const customerNavItems = [
         { label: 'MUNCHIES', key: 'munchies' },
         { label: `FOODCART (${cartItems.length})`, key: 'foodcart' },
         { label: 'MY ORDERS', key: 'my-orders' },
     ];
 
-    // Admin / Caterer navigation items when logged in
+
     const adminNavItems = [
         { label: 'MEAL OPTIONS', key: 'manage-meals' },
         { label: 'SET MENU', key: 'setup-menu' },
@@ -35,13 +35,13 @@ const Navbar = () => {
         { label: 'REVENUE', key: 'revenue' },
     ];
 
-    // Guest navigation items when logged out
+
     const guestNavItems = [
         { label: 'SIGNUP', key: 'signup' },
         { label: 'LOGIN', key: 'login' },
     ];
 
-    // Determine navigation links based on auth status and role
+
     const getNavItems = () => {
         if (!isAuthenticated) return guestNavItems;
         return userRole === 'caterer' || userRole === 'admin' ? adminNavItems : customerNavItems;
@@ -51,7 +51,7 @@ const Navbar = () => {
 
     return (
         <header className="bg-[#FF7A38] text-white px-8 py-4 flex justify-between items-center shadow-md">
-            {/* Logo */}
+
             <h1
                 onClick={() => dispatch(setActiveTab(userRole === 'caterer' || userRole === 'admin' ? 'manage-meals' : 'munchies'))}
                 className="text-2xl font-black tracking-wider cursor-pointer"
@@ -59,7 +59,7 @@ const Navbar = () => {
                 MEALY
             </h1>
 
-            {/* Navigation Buttons */}
+
             <nav className="flex items-center gap-6 font-bold text-xs tracking-wide">
                 {navItems.map((item) => {
                     const isActive = currentTab === item.key;
@@ -75,7 +75,7 @@ const Navbar = () => {
                     );
                 })}
 
-                {/* Display username and logout when authenticated */}
+
                 {isAuthenticated && (
                     <div className="flex items-center gap-4 ml-2">
                         <span className="font-extrabold uppercase text-white">
