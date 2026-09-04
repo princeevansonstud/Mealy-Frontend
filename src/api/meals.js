@@ -1,4 +1,4 @@
-const API_URL = 'https://mealy-backend-x1it.onrender.com';
+const API_URL = 'https://mealy-backend-x1it.onrender.com/api/meals';
 
 function getAuthToken() {
   return (
